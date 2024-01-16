@@ -14,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	nucleusv1alpha1 "open-cluster-management.io/governance-policy-nucleus/api/v1alpha1"
+	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 )
 
@@ -81,7 +83,15 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		policy.Status.DynamicSelectedConfigMaps[i] = cm.GetNamespace() + "/" + cm.GetName()
 	}
 
-	clientMatchedCMs, err := policy.Spec.TargetConfigMaps.GetMatches(ctx, r.Client, &configMapResList{})
+	var list nucleusv1beta1.ResourceList
+
+	if policy.Spec.TargetUsingReflection {
+		list = &nucleusv1alpha1.ReflectiveResourceList{ClientList: &corev1.ConfigMapList{}}
+	} else {
+		list = &configMapResList{}
+	}
+
+	clientMatchedCMs, err := policy.Spec.TargetConfigMaps.GetMatches(ctx, r.Client, list)
 	if err != nil {
 		log.Error(err, "Failed to GetMatches for the TargetConfigMaps",
 			"target", policy.Spec.TargetConfigMaps)
