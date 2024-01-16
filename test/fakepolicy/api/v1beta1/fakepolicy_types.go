@@ -29,6 +29,10 @@ type FakePolicyStatus struct {
 	// by `GetMatchesDynamic`
 	DynamicSelectedConfigMaps []string `json:"dynamicSelectedConfigMaps"`
 
+	// ClientSelectedConfigMaps stores the list of configmaps the policy applies to, as determined
+	// by `GetMatches`
+	ClientSelectedConfigMaps []string `json:"clientSelectedConfigMaps"`
+
 	// SelectionComplete stores whether the selection has been completed
 	SelectionComplete bool `json:"selectionComplete"`
 

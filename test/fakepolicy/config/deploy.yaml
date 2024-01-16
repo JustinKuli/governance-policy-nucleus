@@ -193,6 +193,12 @@ spec:
           status:
             description: FakePolicyStatus defines the observed state of FakePolicy
             properties:
+              clientSelectedConfigMaps:
+                description: ClientSelectedConfigMaps stores the list of configmaps
+                  the policy applies to, as determined by `GetMatches`
+                items:
+                  type: string
+                type: array
               compliant:
                 description: 'ComplianceState indicates whether the policy is compliant
                   or not. Accepted values include: Compliant, NonCompliant, and UnknownCompliancy'

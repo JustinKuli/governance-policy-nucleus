@@ -5,6 +5,7 @@ package controllers
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -80,6 +81,19 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		policy.Status.DynamicSelectedConfigMaps[i] = cm.GetNamespace() + "/" + cm.GetName()
 	}
 
+	clientMatchedCMs, err := policy.Spec.TargetConfigMaps.GetMatches(ctx, r.Client, &configMapResList{})
+	if err != nil {
+		log.Error(err, "Failed to GetMatches for the TargetConfigMaps",
+			"target", policy.Spec.TargetConfigMaps)
+
+		policy.Status.SelectionError = err.Error()
+	}
+
+	policy.Status.ClientSelectedConfigMaps = make([]string, len(clientMatchedCMs))
+	for i, cm := range clientMatchedCMs {
+		policy.Status.ClientSelectedConfigMaps[i] = cm.GetNamespace() + "/" + cm.GetName()
+	}
+
 	policy.Status.SelectionComplete = true
 
 	if err := r.Status().Update(ctx, policy); err != nil {
@@ -89,6 +103,23 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	return ctrl.Result{}, nil
+}
+
+type configMapResList struct {
+	corev1.ConfigMapList
+}
+
+func (l *configMapResList) Items() ([]client.Object, error) {
+	items := make([]client.Object, len(l.ConfigMapList.Items))
+	for i := range l.ConfigMapList.Items {
+		items[i] = &l.ConfigMapList.Items[i]
+	}
+
+	return items, nil
+}
+
+func (l *configMapResList) ObjectList() client.ObjectList {
+	return &l.ConfigMapList
 }
 
 // SetupWithManager sets up the controller with the Manager.

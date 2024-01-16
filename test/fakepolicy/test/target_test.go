@@ -16,7 +16,14 @@ import (
 
 var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
 	defaultConfigMaps := []string{"kube-system/extension-apiserver-authentication"}
-	sampleConfigMaps := []string{"default/foo", "default/goo", "default/fake", "default/faze", "default/kube-one"}
+	sampleConfigMaps := []string{
+		"default/foo",
+		"default/goo",
+		"default/fake",
+		"default/faze",
+		"default/kube-one",
+		"default/extension-apiserver-authentication",
+	}
 	allConfigMaps := append(defaultConfigMaps, sampleConfigMaps...)
 
 	BeforeAll(func() {
@@ -60,6 +67,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
 				g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
 				g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
 				g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
+				g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
 				g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
 			}).Should(Succeed())
 		},
@@ -117,7 +125,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
 					Operator: metav1.LabelSelectorOpExists,
 				}},
 			},
-		}, []string{"default/goo", "default/kube-one"}, ""),
+		}, []string{"default/goo", "default/kube-one", "default/extension-apiserver-authentication"}, ""),
 		Entry("error if the LabelSelector is malformed", nucleusv1beta1.Target{
 			LabelSelector: &metav1.LabelSelector{
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
