@@ -58,6 +58,51 @@ type Target struct {
 	Exclude []NonEmptyString `json:"exclude,omitempty"`
 }
 
+//+kubebuilder:object:generate=false
+
+// ResourceList is meant to wrap a concrete implementation of a client.ObjectList, giving access
+// to the items in the list. The methods should be implemented on pointer types.
+type ResourceList interface {
+	ObjectList() client.ObjectList
+	Items() ([]client.Object, error)
+}
+
+// GetMatches returns a list of resources on the cluster, matched by the Target. The provided
+// ResourceList should be backed by a client.ObjectList type which must registered in the scheme of
+// the client.Reader. The items in the provided ResourceList after this method is called will not
+// necessarily equal the items matched by the Target.
+//
+// This method should be used preferentially to `GetMatchesDynamic` because it can leverage the
+// Reader's cache. NOTE: unlike the NamespaceSelector, an empty Target will match *all* resources on
+// the cluster.
+func (t Target) GetMatches(ctx context.Context, r client.Reader, list ResourceList) ([]client.Object, error) {
+	nonNilSel := t.LabelSelector
+	if nonNilSel == nil { // override it to be empty if it is nil
+		nonNilSel = &metav1.LabelSelector{}
+	}
+
+	labelSel, err := metav1.LabelSelectorAsSelector(nonNilSel)
+	if err != nil {
+		return nil, err
+	}
+
+	listOpts := client.ListOptions{
+		LabelSelector: labelSel,
+		Namespace:     "", // TODO: use t.Namespace
+	}
+
+	if err := r.List(ctx, list.ObjectList(), &listOpts); err != nil {
+		return nil, err
+	}
+
+	items, err := list.Items()
+	if err != nil {
+		return nil, err
+	}
+
+	return t.matchesByName(items)
+}
+
 // GetMatchesDynamic returns a list of resources on the cluster, matched by the Target. The kind of
 // the resources, and whether the list is from one namespace or all namespaces, is configured by the
 // input dynamic.ResourceInterface. NOTE: unlike the NamespaceSelector, an empty Target will match
@@ -90,6 +135,26 @@ func (t Target) GetMatchesDynamic(ctx context.Context, iface dynamic.ResourceInt
 	}
 
 	return matchedObjs, nil
+}
+
+// matchesByName filters a list of client.Objects by name, and returns ones that
+// match the Include and Exclude lists in the Target. The only possible returned
+// error is a wrapped filepath.ErrBadPattern.
+func (t Target) matchesByName(items []client.Object) ([]client.Object, error) {
+	matches := make([]client.Object, 0)
+
+	for _, item := range items {
+		matched, err := t.match(item.GetName())
+		if err != nil {
+			return nil, err
+		}
+
+		if matched {
+			matches = append(matches, item)
+		}
+	}
+
+	return matches, nil
 }
 
 // matches filters a slice of strings, and returns ones that match the Include
