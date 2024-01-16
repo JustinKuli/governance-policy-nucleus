@@ -183,4 +183,28 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 			entries,
 		)
 	})
+
+	Describe("Targets using ReflectiveResourceList", Ordered, func() {
+		BeforeAll(beforeFunc)
+
+		DescribeTable("Verifying TargetConfigMaps behavior",
+			func(sel nucleusv1beta1.Target, desiredMatches []string, selErr string) {
+				policy := sampleFakePolicy()
+				policy.Spec.TargetConfigMaps = sel
+				policy.Spec.TargetUsingReflection = true
+
+				Expect(cleanlyCreate(&policy)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					foundPolicy := fakev1beta1.FakePolicy{}
+					g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
+					g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
+					g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
+					g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
+					g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
+				}).Should(Succeed())
+			},
+			entries,
+		)
+	})
 })

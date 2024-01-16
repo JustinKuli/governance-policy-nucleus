@@ -14,6 +14,9 @@ type FakePolicySpec struct {
 
 	// targetConfigMaps defines the ConfigMaps which should be examined by this policy
 	TargetConfigMaps nucleusv1beta1.Target `json:"targetConfigMaps,omitempty"`
+
+	// targetUsingReflection defines whether to use reflection to find the ConfigMaps
+	TargetUsingReflection bool `json:"targetUsingReflection,omitempty"`
 }
 
 //+kubebuilder:validation:Optional
