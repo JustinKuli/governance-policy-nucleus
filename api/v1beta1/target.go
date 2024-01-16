@@ -45,7 +45,13 @@ func (sel NamespaceSelector) GetNamespaces(ctx context.Context, r client.Reader)
 		namespaces[i] = ns.GetName()
 	}
 
-	return Target(sel).matches(namespaces)
+	t := Target{
+		LabelSelector: sel.LabelSelector,
+		Include:       sel.Include,
+		Exclude:       sel.Exclude,
+	}
+
+	return t.matches(namespaces)
 }
 
 type Target struct {
@@ -56,6 +62,10 @@ type Target struct {
 
 	// Exclude is a list of filepath expressions to include objects by name.
 	Exclude []NonEmptyString `json:"exclude,omitempty"`
+
+	// Namespace is the namespace to restrict the Target to. Can be empty for non-namespaced
+	// objects, or to look in all namespaces.
+	Namespace string `json:"namespace,omitempty"`
 }
 
 //+kubebuilder:object:generate=false
@@ -88,7 +98,7 @@ func (t Target) GetMatches(ctx context.Context, r client.Reader, list ResourceLi
 
 	listOpts := client.ListOptions{
 		LabelSelector: labelSel,
-		Namespace:     "", // TODO: use t.Namespace
+		Namespace:     t.Namespace,
 	}
 
 	if err := r.List(ctx, list.ObjectList(), &listOpts); err != nil {
@@ -104,14 +114,23 @@ func (t Target) GetMatches(ctx context.Context, r client.Reader, list ResourceLi
 }
 
 // GetMatchesDynamic returns a list of resources on the cluster, matched by the Target. The kind of
-// the resources, and whether the list is from one namespace or all namespaces, is configured by the
-// input dynamic.ResourceInterface. NOTE: unlike the NamespaceSelector, an empty Target will match
-// *all* resources on the cluster.
+// the resources is configured by the provided dynamic.ResourceInterface. If the Target specifies a
+// namespace, this method will limit the namespace of the provided Interface if possible. If the
+// provided Interface is already namespaced, the namespace of the Interface will be used (possibly
+// overriding the namespace specified in the Target).
+//
+// NOTE: unlike the NamespaceSelector, an empty Target will match *all* resources on the cluster.
 func (t Target) GetMatchesDynamic(ctx context.Context, iface dynamic.ResourceInterface,
 ) ([]*unstructured.Unstructured, error) {
 	labelSel, err := metav1.LabelSelectorAsSelector(t.LabelSelector)
 	if err != nil {
 		return nil, err
+	}
+
+	if t.Namespace != "" {
+		if namespaceableIface, ok := iface.(dynamic.NamespaceableResourceInterface); ok {
+			iface = namespaceableIface.Namespace(t.Namespace)
+		}
 	}
 
 	objs, err := iface.List(ctx, metav1.ListOptions{LabelSelector: labelSel.String()})
