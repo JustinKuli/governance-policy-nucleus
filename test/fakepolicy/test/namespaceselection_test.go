@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
-	policyv1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
+	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 )
 
 var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
@@ -49,7 +49,7 @@ var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
 			Expect(cleanlyCreate(&policy)).To(Succeed())
 
 			Eventually(func(g Gomega) {
-				foundPolicy := policyv1beta1.FakePolicy{}
+				foundPolicy := fakev1beta1.FakePolicy{}
 				g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
 				g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
 				g.Expect(foundPolicy.Status.SelectedNamespaces).To(ConsistOf(desiredMatches))

@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
-	policyv1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
+	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 )
 
 // cleanlyCreate creates the given object, and registers a callback to delete the object which
@@ -62,8 +62,8 @@ func fromTestdata(name string) unstructured.Unstructured {
 	return unstructured.Unstructured{Object: m}
 }
 
-func sampleFakePolicy() policyv1beta1.FakePolicy {
-	return policyv1beta1.FakePolicy{
+func sampleFakePolicy() fakev1beta1.FakePolicy {
+	return fakev1beta1.FakePolicy{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "policy.open-cluster-management.io/v1beta1",
 			Kind:       "FakePolicy",
@@ -72,7 +72,7 @@ func sampleFakePolicy() policyv1beta1.FakePolicy {
 			Name:      "fakepolicy-sample",
 			Namespace: "default",
 		},
-		Spec: policyv1beta1.FakePolicySpec{
+		Spec: fakev1beta1.FakePolicySpec{
 			PolicyCoreSpec: nucleusv1beta1.PolicyCoreSpec{
 				Severity:          "low",
 				RemediationAction: "inform",
@@ -80,6 +80,14 @@ func sampleFakePolicy() policyv1beta1.FakePolicy {
 					LabelSelector: &metav1.LabelSelector{},
 					Include:       []nucleusv1beta1.NonEmptyString{"*"},
 					Exclude:       []nucleusv1beta1.NonEmptyString{"kube-*"},
+				},
+			},
+			TargetConfigMaps: nucleusv1beta1.Target{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{{
+						Key:      "sample",
+						Operator: metav1.LabelSelectorOpExists,
+					}},
 				},
 			},
 		},

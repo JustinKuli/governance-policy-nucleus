@@ -9,6 +9,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -56,6 +58,40 @@ type Target struct {
 	Exclude []NonEmptyString `json:"exclude,omitempty"`
 }
 
+// GetMatchesDynamic returns a list of resources on the cluster, matched by the Target. The kind of
+// the resources, and whether the list is from one namespace or all namespaces, is configured by the
+// input dynamic.ResourceInterface. NOTE: unlike the NamespaceSelector, an empty Target will match
+// *all* resources on the cluster.
+func (t Target) GetMatchesDynamic(ctx context.Context, iface dynamic.ResourceInterface,
+) ([]*unstructured.Unstructured, error) {
+	labelSel, err := metav1.LabelSelectorAsSelector(t.LabelSelector)
+	if err != nil {
+		return nil, err
+	}
+
+	objs, err := iface.List(ctx, metav1.ListOptions{LabelSelector: labelSel.String()})
+	if err != nil {
+		return nil, err
+	}
+
+	matchedObjs := make([]*unstructured.Unstructured, 0)
+
+	for _, obj := range objs.Items {
+		obj := obj
+
+		matched, err := t.match(obj.GetName())
+		if err != nil {
+			return matchedObjs, err
+		}
+
+		if matched {
+			matchedObjs = append(matchedObjs, &obj)
+		}
+	}
+
+	return matchedObjs, nil
+}
+
 // matches filters a slice of strings, and returns ones that match the Include
 // and Exclude lists in the Target. The only possible returned error is a
 // wrapped filepath.ErrBadPattern.
@@ -64,47 +100,14 @@ func (t Target) matches(names []string) ([]string, error) {
 	set := make(map[string]struct{})
 
 	for _, name := range names {
-		include := len(t.Include) == 0 // include everything if empty/unset
-
-		for _, includePattern := range t.Include {
-			var err error
-			include, err = filepath.Match(string(includePattern), name)
-
-			if err != nil {
-				return nil, fmt.Errorf(
-					"error parsing 'include' pattern '%s': %w", string(includePattern), err)
-			}
-
-			if include {
-				break
-			}
+		matched, err := t.match(name)
+		if err != nil {
+			return nil, err
 		}
 
-		if !include {
-			continue
+		if matched {
+			set[name] = struct{}{}
 		}
-
-		exclude := false
-
-		for _, excludePattern := range t.Exclude {
-			var err error
-			exclude, err = filepath.Match(string(excludePattern), name)
-
-			if err != nil {
-				return nil, fmt.Errorf(
-					"error parsing 'exclude' pattern '%s': %w", string(excludePattern), err)
-			}
-
-			if exclude {
-				break
-			}
-		}
-
-		if exclude {
-			continue
-		}
-
-		set[name] = struct{}{}
 	}
 
 	matchingNames := make([]string, 0, len(set))
@@ -113,4 +116,40 @@ func (t Target) matches(names []string) ([]string, error) {
 	}
 
 	return matchingNames, nil
+}
+
+// match returns whether the given name matches the Include and Exclude lists in
+// the Target.
+func (t Target) match(name string) (bool, error) {
+	var err error
+
+	include := len(t.Include) == 0 // include everything if empty/unset
+
+	for _, includePattern := range t.Include {
+		include, err = filepath.Match(string(includePattern), name)
+		if err != nil {
+			return false, fmt.Errorf("error parsing 'include' pattern '%s': %w", string(includePattern), err)
+		}
+
+		if include {
+			break
+		}
+	}
+
+	if !include {
+		return false, nil
+	}
+
+	for _, excludePattern := range t.Exclude {
+		exclude, err := filepath.Match(string(excludePattern), name)
+		if err != nil {
+			return false, fmt.Errorf("error parsing 'exclude' pattern '%s': %w", string(excludePattern), err)
+		}
+
+		if exclude {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

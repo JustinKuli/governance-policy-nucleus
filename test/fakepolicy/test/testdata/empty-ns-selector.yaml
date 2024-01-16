@@ -7,3 +7,7 @@ spec:
   severity: low
   remediationAction: inform
   namespaceSelector: {}
+  targetConfigMaps:
+    matchExpressions:
+      - key: sample
+        operator: Exists

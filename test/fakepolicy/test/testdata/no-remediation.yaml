@@ -8,3 +8,7 @@ spec:
   namespaceSelector:
     include: ["*"]
     exclude: ["kube-*"]
+  targetConfigMaps:
+    matchExpressions:
+      - key: sample
+        operator: Exists

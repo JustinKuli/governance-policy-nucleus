@@ -12,3 +12,7 @@ spec:
         operator: Exists
     include: ["*"]
     exclude: ["kube-*"]
+  targetConfigMaps:
+    matchExpressions:
+      - key: sample
+        operator: Exists
