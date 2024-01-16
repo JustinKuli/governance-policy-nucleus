@@ -16,6 +16,30 @@ var sampleNames = []string{
 	"foo", "bar", "baz", "boo", "default", "kube-one", "kube-two", "kube-three",
 }
 
+// matches is only used to unit-test the behavior of `match`
+func (t *Target) matches(names []string) ([]string, error) {
+	// Using a map to ensure each entry in the result is unique.
+	set := make(map[string]struct{})
+
+	for _, name := range names {
+		matched, err := t.match(name)
+		if err != nil {
+			return nil, err
+		}
+
+		if matched {
+			set[name] = struct{}{}
+		}
+	}
+
+	matchingNames := make([]string, 0, len(set))
+	for ns := range set {
+		matchingNames = append(matchingNames, ns)
+	}
+
+	return matchingNames, nil
+}
+
 // Fuzz test to verify that excluding "*" always matches 0 names. The
 // `Include` list and the input names are both fuzzed.
 func FuzzMatchesExcludeAll(f *testing.F) {
