@@ -188,6 +188,11 @@ spec:
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
+                  namespace:
+                    description: Namespace is the namespace to restrict the Target
+                      to. Can be empty for non-namespaced objects, or to look in all
+                      namespaces.
+                    type: string
                 type: object
             type: object
           status:

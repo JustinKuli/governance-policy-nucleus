@@ -14,7 +14,7 @@ import (
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 )
 
-var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
+var _ = Describe("FakePolicy TargetConfigMaps", func() {
 	defaultConfigMaps := []string{"kube-system/extension-apiserver-authentication"}
 	sampleConfigMaps := []string{
 		"default/foo",
@@ -23,10 +23,11 @@ var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
 		"default/faze",
 		"default/kube-one",
 		"default/extension-apiserver-authentication",
+		"kube-public/kube-testing",
 	}
 	allConfigMaps := append(defaultConfigMaps, sampleConfigMaps...)
 
-	BeforeAll(func() {
+	beforeFunc := func() {
 		By("Creating sample configmaps")
 		for _, cm := range sampleConfigMaps {
 			ns, name, _ := strings.Cut(cm, "/")
@@ -53,25 +54,9 @@ var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
 		}
 
 		Expect(allConfigMaps).To(ConsistOf(foundCM))
-	})
+	}
 
-	DescribeTable("Verifying TargetConfigMaps behavior",
-		func(sel nucleusv1beta1.Target, desiredMatches []string, selErr string) {
-			policy := sampleFakePolicy()
-			policy.Spec.TargetConfigMaps = sel
-
-			Expect(cleanlyCreate(&policy)).To(Succeed())
-
-			Eventually(func(g Gomega) {
-				foundPolicy := fakev1beta1.FakePolicy{}
-				g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
-				g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
-				g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
-				g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
-				g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
-			}).Should(Succeed())
-		},
-		//
+	entries := []TableEntry{
 		Entry("empty Target", nucleusv1beta1.Target{}, allConfigMaps, ""),
 
 		// Basic testing of includes and excludes
@@ -125,7 +110,12 @@ var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
 					Operator: metav1.LabelSelectorOpExists,
 				}},
 			},
-		}, []string{"default/goo", "default/kube-one", "default/extension-apiserver-authentication"}, ""),
+		}, []string{
+			"default/goo",
+			"default/kube-one",
+			"default/extension-apiserver-authentication",
+			"kube-public/kube-testing",
+		}, ""),
 		Entry("error if the LabelSelector is malformed", nucleusv1beta1.Target{
 			LabelSelector: &metav1.LabelSelector{
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
@@ -136,5 +126,61 @@ var _ = Describe("FakePolicy TargetConfigMaps", Ordered, func() {
 			},
 		}, []string{}, "values: Invalid value: []string{\"foo\"}: "+
 			"values set must be empty for exists and does not exist"),
-	)
+	}
+
+	Describe("Targets without a Namespace", Ordered, func() {
+		BeforeAll(beforeFunc)
+
+		DescribeTable("Verifying TargetConfigMaps behavior",
+			func(sel nucleusv1beta1.Target, desiredMatches []string, selErr string) {
+				policy := sampleFakePolicy()
+				policy.Spec.TargetConfigMaps = sel
+
+				Expect(cleanlyCreate(&policy)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					foundPolicy := fakev1beta1.FakePolicy{}
+					g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
+					g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
+					g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
+					g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
+					g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
+				}).Should(Succeed())
+			},
+			entries,
+		)
+	})
+
+	Describe("Targets restricted to the default namespace", Ordered, func() {
+		BeforeAll(beforeFunc)
+
+		DescribeTable("Verifying TargetConfigMaps behavior",
+			func(sel nucleusv1beta1.Target, givenDesiredMatches []string, selErr string) {
+				sel.Namespace = "default"
+
+				desiredMatches := make([]string, 0)
+				for _, item := range givenDesiredMatches {
+					ns, _, _ := strings.Cut(item, "/")
+					if ns == "default" {
+						desiredMatches = append(desiredMatches, item)
+					}
+				}
+
+				policy := sampleFakePolicy()
+				policy.Spec.TargetConfigMaps = sel
+
+				Expect(cleanlyCreate(&policy)).To(Succeed())
+
+				Eventually(func(g Gomega) {
+					foundPolicy := fakev1beta1.FakePolicy{}
+					g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
+					g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
+					g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
+					g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
+					g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
+				}).Should(Succeed())
+			},
+			entries,
+		)
+	})
 })
