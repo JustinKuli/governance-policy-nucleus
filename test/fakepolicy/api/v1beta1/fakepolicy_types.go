@@ -11,6 +11,9 @@ import (
 // FakePolicySpec defines the desired state of FakePolicy
 type FakePolicySpec struct {
 	nucleusv1beta1.PolicyCoreSpec `json:",inline"`
+
+	// targetConfigMaps defines the ConfigMaps which should be examined by this policy
+	TargetConfigMaps nucleusv1beta1.Target `json:"targetConfigMaps,omitempty"`
 }
 
 //+kubebuilder:validation:Optional
@@ -21,6 +24,10 @@ type FakePolicyStatus struct {
 
 	// SelectedNamespaces stores the list of namespaces the policy applies to
 	SelectedNamespaces []string `json:"selectedNamespaces"`
+
+	// DynamicSelectedConfigMaps stores the list of configmaps the policy applies to, as determined
+	// by `GetMatchesDynamic`
+	DynamicSelectedConfigMaps []string `json:"dynamicSelectedConfigMaps"`
 
 	// SelectionComplete stores whether the selection has been completed
 	SelectionComplete bool `json:"selectionComplete"`

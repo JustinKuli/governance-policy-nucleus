@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -19,7 +20,7 @@ import (
 	"github.com/stolostron/go-log-utils/zaputil"
 	"k8s.io/klog/v2"
 
-	policyv1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
+	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 	"open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -29,7 +30,7 @@ var scheme = runtime.NewScheme()
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
-	utilruntime.Must(policyv1beta1.AddToScheme(scheme))
+	utilruntime.Must(fakev1beta1.AddToScheme(scheme))
 }
 
 //nolint:unused
@@ -97,9 +98,17 @@ func Run(parentCtx context.Context, cfg *rest.Config) error {
 		return err
 	}
 
+	dynClient, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		setupLog.Error(err, "unable to create dynamic client")
+
+		return err
+	}
+
 	if err = (&controllers.FakePolicyReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		DynamicClient: dynClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FakePolicy")
 
