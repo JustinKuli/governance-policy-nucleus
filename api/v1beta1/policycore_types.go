@@ -8,9 +8,12 @@
 package v1beta1
 
 import (
+	"context"
 	"encoding/json"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // NOTE: json tags are required. Any new fields you add must have json tags for
@@ -95,6 +98,52 @@ func (sel NamespaceSelector) MarshalJSON() ([]byte, error) {
 			Exclude:          sel.Exclude,
 		})
 	}
+}
+
+// GetNamespaces fetches all namespaces in the cluster and returns a list of the
+// namespaces that match the NamespaceSelector. The client.Reader needs access
+// for viewing namespaces, like the access given by this kubebuilder tag:
+// `//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch`
+func (sel NamespaceSelector) GetNamespaces(ctx context.Context, r client.Reader) ([]string, error) {
+	if len(sel.Include) == 0 && sel.LabelSelector == nil {
+		// A somewhat special case of no matches.
+		return []string{}, nil
+	}
+
+	t := Target{
+		LabelSelector: sel.LabelSelector,
+		Include:       sel.Include,
+		Exclude:       sel.Exclude,
+	}
+
+	matchingNamespaces, err := t.GetMatches(ctx, r, &namespaceResList{})
+	if err != nil {
+		return nil, err
+	}
+
+	names := make([]string, len(matchingNamespaces))
+	for i, ns := range matchingNamespaces {
+		names[i] = ns.GetName()
+	}
+
+	return names, nil
+}
+
+type namespaceResList struct {
+	corev1.NamespaceList
+}
+
+func (l *namespaceResList) Items() ([]client.Object, error) {
+	items := make([]client.Object, len(l.NamespaceList.Items))
+	for i := range l.NamespaceList.Items {
+		items[i] = &l.NamespaceList.Items[i]
+	}
+
+	return items, nil
+}
+
+func (l *namespaceResList) ObjectList() client.ObjectList {
+	return &l.NamespaceList
 }
 
 //+kubebuilder:validation:MinLength=1
