@@ -37,3 +37,13 @@ jobs:
 
       - run: |
           make test
+
+      - name: Update coverage report
+        uses: ncruces/go-coverage-report@v0
+        with:
+          coverage-file: cover.out
+          report: true
+          chart: false
+          amend: false
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        continue-on-error: true
