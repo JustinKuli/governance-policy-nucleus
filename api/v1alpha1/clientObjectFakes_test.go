@@ -8,10 +8,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// fakeObjList implements client.ObjectList
+// fakeObjList minimally implements client.ObjectList. It is only to be used for tests.
 type fakeObjList string
 
-var _ client.ObjectList = fakeObjList("")
+// ensure fakeObjList implements client.ObjectList
+var _ client.ObjectList = (*fakeObjList)(nil)
 
 func (l fakeObjList) GetResourceVersion() string {
 	return string(l)
@@ -49,10 +50,11 @@ func (l fakeObjList) DeepCopyObject() runtime.Object {
 	return l
 }
 
-// fakeObjList implements client.Object
+// fakeObjList minimally implements client.Object. It is only to be used for tests.
 type fakeObj string
 
-var _ client.Object = fakeObj("")
+// ensure fakeObj implements client.Object
+var _ client.Object = (*fakeObj)(nil)
 
 func (o fakeObj) GetNamespace() string {
 	return string(o)

@@ -30,7 +30,28 @@ type Target struct {
 //+kubebuilder:object:generate=false
 
 // ResourceList is meant to wrap a concrete implementation of a client.ObjectList, giving access
-// to the items in the list. The methods should be implemented on pointer types.
+// to the items in the list. The methods should be implemented on pointer types. For example, an
+// implementation of this interface for ConfigMaps might look like:
+//
+//	import corev1 "k8s.io/api/core/v1"
+//	import "sigs.k8s.io/controller-runtime/pkg/client"
+//
+//	type configMapResList struct {
+//		corev1.ConfigMapList
+//	}
+//
+//	func (l *configMapResList) Items() ([]client.Object, error) {
+//		items := make([]client.Object, len(l.ConfigMapList.Items))
+//		for i := range l.ConfigMapList.Items {
+//			items[i] = &l.ConfigMapList.Items[i]
+//		}
+//
+//		return items, nil
+//	}
+//
+//	func (l *configMapResList) ObjectList() client.ObjectList {
+//		return &l.ConfigMapList
+//	}
 type ResourceList interface {
 	ObjectList() client.ObjectList
 	Items() ([]client.Object, error)
@@ -39,11 +60,13 @@ type ResourceList interface {
 // GetMatches returns a list of resources on the cluster, matched by the Target. The provided
 // ResourceList should be backed by a client.ObjectList type which must registered in the scheme of
 // the client.Reader. The items in the provided ResourceList after this method is called will not
-// necessarily equal the items matched by the Target.
+// necessarily equal the items matched by the Target. The items returned here will be in relatively
+// the same order as they were in the list returned by the API.
 //
 // This method should be used preferentially to `GetMatchesDynamic` because it can leverage the
-// Reader's cache. NOTE: unlike the NamespaceSelector, an empty Target will match *all* resources on
-// the cluster.
+// Reader's cache.
+//
+// NOTE: unlike the NamespaceSelector, an empty Target will match *all* resources on the cluster.
 func (t Target) GetMatches(ctx context.Context, r client.Reader, list ResourceList) ([]client.Object, error) {
 	nonNilSel := t.LabelSelector
 	if nonNilSel == nil { // override it to be empty if it is nil
@@ -76,7 +99,8 @@ func (t Target) GetMatches(ctx context.Context, r client.Reader, list ResourceLi
 // the resources is configured by the provided dynamic.ResourceInterface. If the Target specifies a
 // namespace, this method will limit the namespace of the provided Interface if possible. If the
 // provided Interface is already namespaced, the namespace of the Interface will be used (possibly
-// overriding the namespace specified in the Target).
+// overriding the namespace specified in the Target). The items returned here will be in relatively
+// the same order as they were in the list returned by the API.
 //
 // NOTE: unlike the NamespaceSelector, an empty Target will match *all* resources on the cluster.
 func (t Target) GetMatchesDynamic(
