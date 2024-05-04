@@ -104,6 +104,8 @@ func (sel NamespaceSelector) MarshalJSON() ([]byte, error) {
 // namespaces that match the NamespaceSelector. The client.Reader needs access
 // for viewing namespaces, like the access given by this kubebuilder tag:
 // `//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch`
+//
+// NOTE: unlike Target, an empty NamespaceSelector will match zero namespaces
 func (sel NamespaceSelector) GetNamespaces(ctx context.Context, r client.Reader) ([]string, error) {
 	if len(sel.Include) == 0 && sel.LabelSelector == nil {
 		// A somewhat special case of no matches.
@@ -132,6 +134,9 @@ func (sel NamespaceSelector) GetNamespaces(ctx context.Context, r client.Reader)
 type namespaceResList struct {
 	corev1.NamespaceList
 }
+
+// ensure namespaceResList implements ResourceList
+var _ ResourceList = (*namespaceResList)(nil)
 
 func (l *namespaceResList) Items() ([]client.Object, error) {
 	items := make([]client.Object, len(l.NamespaceList.Items))

@@ -119,6 +119,9 @@ type configMapResList struct {
 	corev1.ConfigMapList
 }
 
+// ensure configMapResList implements ResourceList
+var _ nucleusv1beta1.ResourceList = (*configMapResList)(nil)
+
 func (l *configMapResList) Items() ([]client.Object, error) {
 	items := make([]client.Object, len(l.ConfigMapList.Items))
 	for i := range l.ConfigMapList.Items {

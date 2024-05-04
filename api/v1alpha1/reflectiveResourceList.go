@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,8 +19,12 @@ type ReflectiveResourceList struct {
 	ClientList client.ObjectList
 }
 
+// ensure ReflectiveResourceList implements ResourceList
+var _ v1beta1.ResourceList = (*ReflectiveResourceList)(nil)
+
 // Items returns the list of items in the list. Since this implementation uses reflection, it may
-// have errors or not perform as well as a bespoke implementation for the underlying type.
+// have errors or not perform as well as a bespoke implementation for the underlying type. The
+// returned Objects are in the same order that they are in the list.
 func (l *ReflectiveResourceList) Items() ([]client.Object, error) {
 	value := reflect.ValueOf(l.ClientList)
 	if value.Kind() == reflect.Pointer {
