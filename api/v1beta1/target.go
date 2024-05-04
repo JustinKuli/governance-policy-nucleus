@@ -79,7 +79,8 @@ func (t Target) GetMatches(ctx context.Context, r client.Reader, list ResourceLi
 // overriding the namespace specified in the Target).
 //
 // NOTE: unlike the NamespaceSelector, an empty Target will match *all* resources on the cluster.
-func (t Target) GetMatchesDynamic(ctx context.Context, iface dynamic.ResourceInterface,
+func (t Target) GetMatchesDynamic(
+	ctx context.Context, iface dynamic.ResourceInterface,
 ) ([]*unstructured.Unstructured, error) {
 	labelSel, err := metav1.LabelSelectorAsSelector(t.LabelSelector)
 	if err != nil {
