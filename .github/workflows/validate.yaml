@@ -38,10 +38,17 @@ jobs:
       - run: |
           make test
 
+      - run: |
+          head -1 cover.out > nucleus_cover.out
+          grep 'governance-policy-nucleus' cover.out >> nucleus_cover.out
+          go tool cover -func=nucleus_cover.out
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        continue-on-error: true
+
       - name: Update coverage report
         uses: ncruces/go-coverage-report@v0
         with:
-          coverage-file: cover.out
+          coverage-file: nucleus_cover.out
           report: true
           chart: false
           amend: false
