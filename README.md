@@ -2,7 +2,7 @@
 [![License](https://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 [![Go Report Card](https://goreportcard.com/badge/github.com/JustinKuli/governance-policy-nucleus)](https://goreportcard.com/report/github.com/JustinKuli/governance-policy-nucleus)
 [![Go Reference](https://pkg.go.dev/badge/image)](https://pkg.go.dev/github.com/JustinKuli/governance-policy-nucleus)
-[![Go Coverage](https://github.com/JustinKuli/governance-policy-nucleus/wiki/coverage.svg)](https://raw.githack.com/wiki/JustinKuli/governance-policy-nucleus/coverage.html)
+[![Go Coverage](https://github.com/JustinKuli/governance-policy-nucleus/wiki/main/coverage.svg)](https://raw.githack.com/wiki/JustinKuli/governance-policy-nucleus/main/coverage.html)
 
 # Governance Policy Nucleus
 
