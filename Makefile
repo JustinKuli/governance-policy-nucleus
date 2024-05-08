@@ -6,8 +6,10 @@ $(LOCAL_BIN):
 	mkdir -p $(LOCAL_BIN)
 
 # Keep an existing GOPATH, make a private one if it is undefined
-GOPATH_DEFAULT := $(ROOTDIR)/.go
-export GOPATH ?= $(GOPATH_DEFAULT)
+export GOPATH ?= $(shell go env GOPATH)
+ifeq ($(GOPATH),)
+	GOPATH := $(ROOTDIR)/.go
+endif
 GOBIN_DEFAULT := $(GOPATH)/bin
 export GOBIN ?= $(GOBIN_DEFAULT)
 
@@ -34,14 +36,25 @@ CONTROLLER_GEN ?= $(LOCAL_BIN)/controller-gen
 $(CONTROLLER_GEN): $(LOCAL_BIN)
 	$(call go-install,sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION))
 
-ENVTEST ?= $(LOCAL_BIN)/setup-envtest
-$(ENVTEST): $(LOCAL_BIN)
-	$(call go-install,sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
-
 KUSTOMIZE_VERSION ?= v5.4.1 # https://github.com/kubernetes-sigs/kustomize/releases/latest
 KUSTOMIZE ?= $(LOCAL_BIN)/kustomize
 $(KUSTOMIZE): $(LOCAL_BIN)
 	$(call go-install,sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION))
+
+GOFUMPT_VERSION ?= v0.6.0 # https://github.com/mvdan/gofumpt/releases/latest
+GOFUMPT ?= $(LOCAL_BIN)/gofumpt
+$(GOFUMPT): $(LOCAL_BIN)
+	$(call go-install,mvdan.cc/gofumpt@$(GOFUMPT_VERSION))
+
+GCI_VERSION ?= v0.13.4 # https://github.com/daixiang0/gci/releases/latest
+GCI ?= $(LOCAL_BIN)/gci
+$(GCI): $(LOCAL_BIN)
+	$(call go-install,github.com/daixiang0/gci@$(GCI_VERSION))
+
+GOSEC_VERSION ?= v2.19.0 # https://github.com/securego/gosec/releases/latest
+GOSEC ?= $(LOCAL_BIN)/gosec
+$(GOSEC): $(LOCAL_BIN)
+	$(call go-install,github.com/securego/gosec/v2/cmd/gosec@$(GOSEC_VERSION))
 
 GOLANGCI_VERSION ?= v1.58.0 # https://github.com/golangci/golangci-lint/releases/latest
 GOLANGCI ?= $(LOCAL_BIN)/golangci-lint
@@ -54,6 +67,10 @@ GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' go.mo
 GINKGO ?= $(LOCAL_BIN)/ginkgo
 $(GINKGO): $(LOCAL_BIN)
 	$(call go-install,github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION))
+
+ENVTEST ?= $(LOCAL_BIN)/setup-envtest
+$(ENVTEST): $(LOCAL_BIN)
+	$(call go-install,sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 
 .PHONY: manifests
 manifests: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -69,12 +86,15 @@ generate: $(CONTROLLER_GEN) ## Generate code containing DeepCopy, DeepCopyInto, 
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
+fmt: $(GOFUMPT) $(GCI)
+	go mod tidy
+	find . -not \( -path "./.go" -prune \) -name "*.go" | xargs $(GOFUMPT) -l -w
+	find . -not \( -path "./.go" -prune \) -name "*.go" | xargs $(GCI) write --skip-generated -s standard -s default -s localmodule
 
 .PHONY: vet
-vet: ## Run go vet against code.
+vet: $(GOSEC)
 	go vet ./...
+	$(GOSEC) -fmt sonarqube -out gosec.json -stdout -exclude-dir=.go -exclude-dir=test -exclude-generated ./...
 
 # Note: this target is not used by Github Actions. Instead, each linter is run 
 # separately to automatically decorate the code with the linting errors.

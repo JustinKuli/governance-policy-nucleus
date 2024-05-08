@@ -1,14 +1,14 @@
-name: Validation
+name: Code Checks
 
-on: [push, pull_request]
+on: [push]
 
 defaults:
   run:
     shell: bash
 
 jobs:
-  basic:
-    name: generate and vet
+  makechecks:
+    name: Make Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,16 +17,39 @@ jobs:
         with:
           go-version-file: './go.mod'
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - run: pip install yamllint==1.33.0
+
       - run: |
-          make generate
           make manifests
-          go mod tidy
+          make generate
           make fmt
           make vet
+          yamllint .
           git diff --exit-code
 
-  unit-tests:
-    name: Unit Tests
+  # A separate job so that it can annotate the code
+  golangci:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: './go.mod'
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v5
+        with:
+          version: v1.58
+          # Automatically uses ./.golangci.yml for configuration
+
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,15 +61,10 @@ jobs:
       - run: |
           make test
 
-          # Fix things up for the coverage report
-          head -1 cover.out > nucleus_cover.out
-          grep 'governance-policy-nucleus' cover.out >> nucleus_cover.out
-          sudo rm -rf .go
-
       - name: Update coverage report
         uses: ncruces/go-coverage-report@v0
         with:
-          coverage-file: nucleus_cover.out
+          coverage-file: cover.out
           output-dir: ${{ github.ref_name }}
           report: true
           chart: false
