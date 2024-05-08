@@ -19,7 +19,6 @@ import (
 
 	"open-cluster-management.io/governance-policy-nucleus/test/fakepolicy"
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
-	//+kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to

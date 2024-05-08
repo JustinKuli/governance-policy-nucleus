@@ -7,8 +7,9 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
 )
 
 var _ = Describe("FakePolicy resource format verification", func() {

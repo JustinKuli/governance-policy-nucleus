@@ -7,22 +7,20 @@ import (
 	"flag"
 	"os"
 
+	"github.com/go-logr/zapr"
+	"github.com/stolostron/go-log-utils/zaputil"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"github.com/go-logr/zapr"
-	"github.com/stolostron/go-log-utils/zaputil"
-	"k8s.io/klog/v2"
-
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 	"open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/controllers"
-	//+kubebuilder:scaffold:imports
 )
 
 var scheme = runtime.NewScheme()

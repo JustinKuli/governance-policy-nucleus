@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
 )
 
 //+kubebuilder:object:generate=false
