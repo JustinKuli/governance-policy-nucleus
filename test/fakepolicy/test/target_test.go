@@ -15,7 +15,10 @@ import (
 )
 
 var _ = Describe("FakePolicy TargetConfigMaps", func() {
-	defaultConfigMaps := []string{"kube-system/extension-apiserver-authentication"}
+	defaultConfigMaps := []string{
+		"kube-system/extension-apiserver-authentication",
+		"kube-system/kube-apiserver-legacy-service-account-token-tracking",
+	}
 	sampleConfigMaps := []string{
 		"default/foo",
 		"default/goo",

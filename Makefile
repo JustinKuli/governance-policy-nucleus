@@ -24,29 +24,36 @@ SHELL = /usr/bin/env bash -o pipefail
 # Note: this replaces `go-get-tool`.
 go-install = @set -e ; mkdir -p $(LOCAL_BIN) ; GOBIN=$(LOCAL_BIN) go install $(1)
 
-# Define local utilities near the top so they work correctly as targets
+# Define local utilities before other targets so they work correctly
 # Note: this pattern of variables, paths, and target names allows users to
 #  override the version used, and helps Make by not using PHONY targets.
+# To 'refresh' versions, remove the local bin directory.
 
+CONTROLLER_GEN_VERSION ?= v0.15.0 # https://github.com/kubernetes-sigs/controller-tools/releases/latest
 CONTROLLER_GEN ?= $(LOCAL_BIN)/controller-gen
 $(CONTROLLER_GEN): $(LOCAL_BIN)
-	$(call go-install,sigs.k8s.io/controller-tools/cmd/controller-gen@v0.8.0)
+	$(call go-install,sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION))
 
 ENVTEST ?= $(LOCAL_BIN)/setup-envtest
 $(ENVTEST): $(LOCAL_BIN)
 	$(call go-install,sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
 
+KUSTOMIZE_VERSION ?= v5.4.1 # https://github.com/kubernetes-sigs/kustomize/releases/latest
 KUSTOMIZE ?= $(LOCAL_BIN)/kustomize
 $(KUSTOMIZE): $(LOCAL_BIN)
-	$(call go-install,sigs.k8s.io/kustomize/kustomize/v4@v4.5.5)
+	$(call go-install,sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION))
 
+GOLANGCI_VERSION ?= v1.58.0 # https://github.com/golangci/golangci-lint/releases/latest
 GOLANGCI ?= $(LOCAL_BIN)/golangci-lint
 $(GOLANGCI): $(LOCAL_BIN)
-	$(call go-install,github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2)
+	$(call go-install,github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_VERSION))
 
+# To change this version, adjust it in the go.mod file
+# https://github.com/onsi/ginkgo/releases/latest
+GINKGO_VERSION := $(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' go.mod)
 GINKGO ?= $(LOCAL_BIN)/ginkgo
 $(GINKGO): $(LOCAL_BIN)
-	$(call go-install,github.com/onsi/ginkgo/v2/ginkgo@$(shell awk '/github.com\/onsi\/ginkgo\/v2/ {print $$2}' go.mod))
+	$(call go-install,github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION))
 
 .PHONY: manifests
 manifests: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -77,7 +84,7 @@ lint: $(GOLANGCI)
 	$(GOLANGCI) run
 	yamllint -c $(ROOTDIR)/.yamllint.yaml .
 
-ENVTEST_K8S_VERSION ?= 1.26
+ENVTEST_K8S_VERSION ?= 1.29
 .PHONY: test
 test: manifests generate $(GINKGO) $(ENVTEST) ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \

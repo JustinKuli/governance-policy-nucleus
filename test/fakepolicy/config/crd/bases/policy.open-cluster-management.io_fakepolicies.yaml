@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: fakepolicies.policy.open-cluster-management.io
 spec:
   group: policy.open-cluster-management.io
@@ -21,14 +20,19 @@ spec:
         description: FakePolicy is the Schema for the fakepolicies API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -36,9 +40,9 @@ spec:
             description: FakePolicySpec defines the desired state of FakePolicy
             properties:
               namespaceSelector:
-                description: NamespaceSelector indicates which namespaces on the cluster
-                  this policy should apply to, when the policy applies to namespaced
-                  objects.
+                description: |-
+                  NamespaceSelector indicates which namespaces on the cluster this policy
+                  should apply to, when the policy applies to namespaced objects.
                 properties:
                   exclude:
                     description: Exclude is a list of filepath expressions for namespaces
@@ -58,48 +62,51 @@ spec:
                     description: matchExpressions is a list of label selector requirements.
                       The requirements are ANDed.
                     items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
                       properties:
                         key:
                           description: key is the label key that the selector applies
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
                           type: string
                         values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: atomic
                       required:
                       - key
                       - operator
                       type: object
                     type: array
+                    x-kubernetes-list-type: atomic
                   matchLabels:
                     additionalProperties:
                       type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               remediationAction:
-                description: RemediationAction indicates what the policy controller
-                  should do when the policy is not compliant. Accepted values include
-                  inform, and enforce. Note that not all policy controllers will attempt
-                  to automatically remediate a policy, even when set to "enforce".
+                description: |-
+                  RemediationAction indicates what the policy controller should do when the
+                  policy is not compliant. Accepted values include inform, and enforce.
+                  Note that not all policy controllers will attempt to automatically
+                  remediate a policy, even when set to "enforce".
                 enum:
                 - Inform
                 - inform
@@ -107,10 +114,11 @@ spec:
                 - enforce
                 type: string
               severity:
-                description: 'Severity defines how serious the situation is when the
-                  policy is not compliant. The severity should not change the behavior
-                  of the policy, but may be read and used by other tools. Accepted
-                  values include: low, medium, high, and critical.'
+                description: |-
+                  Severity defines how serious the situation is when the policy is not
+                  compliant. The severity should not change the behavior of the policy, but
+                  may be read and used by other tools. Accepted values include: low,
+                  medium, high, and critical.
                 enum:
                 - low
                 - Low
@@ -143,48 +151,50 @@ spec:
                     description: matchExpressions is a list of label selector requirements.
                       The requirements are ANDed.
                     items:
-                      description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
-                        and values.
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
                       properties:
                         key:
                           description: key is the label key that the selector applies
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
-                            a set of values. Valid operators are In, NotIn, Exists
-                            and DoesNotExist.
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
                           type: string
                         values:
-                          description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
-                            array must be empty. This array is replaced during a strategic
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: atomic
                       required:
                       - key
                       - operator
                       type: object
                     type: array
+                    x-kubernetes-list-type: atomic
                   matchLabels:
                     additionalProperties:
                       type: string
-                    description: matchLabels is a map of {key,value} pairs. A single
-                      {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
-                      is "In", and the values array contains only "value". The requirements
-                      are ANDed.
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
                     type: object
                   namespace:
-                    description: Namespace is the namespace to restrict the Target
-                      to. Can be empty for non-namespaced objects, or to look in all
-                      namespaces.
+                    description: |-
+                      Namespace is the namespace to restrict the Target to. Can be empty for non-namespaced
+                      objects, or to look in all namespaces.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               targetUsingReflection:
                 description: targetUsingReflection defines whether to use reflection
                   to find the ConfigMaps
@@ -194,22 +204,25 @@ spec:
             description: FakePolicyStatus defines the observed state of FakePolicy
             properties:
               clientSelectedConfigMaps:
-                description: ClientSelectedConfigMaps stores the list of configmaps
-                  the policy applies to, as determined by `GetMatches`
+                description: |-
+                  ClientSelectedConfigMaps stores the list of configmaps the policy applies to, as determined
+                  by `GetMatches`
                 items:
                   type: string
                 type: array
               compliant:
-                description: 'ComplianceState indicates whether the policy is compliant
-                  or not. Accepted values include: Compliant, NonCompliant, and UnknownCompliancy'
+                description: |-
+                  ComplianceState indicates whether the policy is compliant or not.
+                  Accepted values include: Compliant, NonCompliant, and UnknownCompliancy
                 enum:
                 - Compliant
                 - NonCompliant
                 - UnknownCompliancy
                 type: string
               dynamicSelectedConfigMaps:
-                description: DynamicSelectedConfigMaps stores the list of configmaps
-                  the policy applies to, as determined by `GetMatchesDynamic`
+                description: |-
+                  DynamicSelectedConfigMaps stores the list of configmaps the policy applies to, as determined
+                  by `GetMatchesDynamic`
                 items:
                   type: string
                 type: array
@@ -233,9 +246,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
