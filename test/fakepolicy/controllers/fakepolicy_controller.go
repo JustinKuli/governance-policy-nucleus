@@ -4,9 +4,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -52,17 +55,47 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	policy.Status.SelectionError = ""
+	r.doSelections(ctx, policy)
+
+	if err := r.Status().Update(ctx, policy); err != nil {
+		log.Error(err, "Failed to update status")
+
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *FakePolicyReconciler) doSelections(ctx context.Context, policy *fakev1beta1.FakePolicy) {
+	log := log.FromContext(ctx)
+
+	nsCond := metav1.Condition{
+		Type:   "NamespaceSelection",
+		Status: metav1.ConditionTrue,
+		Reason: "Done",
+	}
 
 	selectedNamespaces, err := policy.Spec.NamespaceSelector.GetNamespaces(ctx, r.Client)
 	if err != nil {
 		log.Error(err, "Failed to GetNamespaces using NamespaceSelector",
 			"selector", policy.Spec.NamespaceSelector)
 
-		policy.Status.SelectionError = err.Error()
+		nsCond.Status = metav1.ConditionFalse
+		nsCond.Reason = "Error"
+		nsCond.Message = err.Error()
+	} else {
+		slices.Sort(selectedNamespaces)
+
+		nsCond.Message = fmt.Sprintf("%v", selectedNamespaces)
 	}
 
-	policy.Status.SelectedNamespaces = selectedNamespaces
+	policy.Status.UpdateCondition(nsCond)
+
+	dynCond := metav1.Condition{
+		Type:   "DynamicSelection",
+		Status: metav1.ConditionTrue,
+		Reason: "Done",
+	}
 
 	cmIface := r.DynamicClient.Resource(schema.GroupVersionResource{
 		Group:    "",
@@ -75,12 +108,26 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Error(err, "Failed to GetMatchesDynamic for the TargetConfigMaps",
 			"target", policy.Spec.TargetConfigMaps)
 
-		policy.Status.SelectionError = err.Error()
+		dynCond.Status = metav1.ConditionFalse
+		dynCond.Reason = "Error"
+		dynCond.Message = err.Error()
+	} else {
+		dynamicCMs := make([]string, len(dynamicMatchedCMs))
+		for i, cm := range dynamicMatchedCMs {
+			dynamicCMs[i] = cm.GetNamespace() + "/" + cm.GetName()
+		}
+
+		slices.Sort(dynamicCMs)
+
+		dynCond.Message = fmt.Sprintf("%v", dynamicCMs)
 	}
 
-	policy.Status.DynamicSelectedConfigMaps = make([]string, len(dynamicMatchedCMs))
-	for i, cm := range dynamicMatchedCMs {
-		policy.Status.DynamicSelectedConfigMaps[i] = cm.GetNamespace() + "/" + cm.GetName()
+	policy.Status.UpdateCondition(dynCond)
+
+	clientCond := metav1.Condition{
+		Type:   "ClientSelection",
+		Status: metav1.ConditionTrue,
+		Reason: "Done",
 	}
 
 	var list nucleusv1beta1.ResourceList
@@ -96,23 +143,23 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Error(err, "Failed to GetMatches for the TargetConfigMaps",
 			"target", policy.Spec.TargetConfigMaps)
 
-		policy.Status.SelectionError = err.Error()
+		clientCond.Status = metav1.ConditionFalse
+		clientCond.Reason = "Error"
+		clientCond.Message = err.Error()
+	} else {
+		clientCMs := make([]string, len(clientMatchedCMs))
+		for i, cm := range dynamicMatchedCMs {
+			clientCMs[i] = cm.GetNamespace() + "/" + cm.GetName()
+		}
+
+		slices.Sort(clientCMs)
+
+		clientCond.Message = fmt.Sprintf("%v", clientCMs)
 	}
 
-	policy.Status.ClientSelectedConfigMaps = make([]string, len(clientMatchedCMs))
-	for i, cm := range clientMatchedCMs {
-		policy.Status.ClientSelectedConfigMaps[i] = cm.GetNamespace() + "/" + cm.GetName()
-	}
+	policy.Status.UpdateCondition(clientCond)
 
 	policy.Status.SelectionComplete = true
-
-	if err := r.Status().Update(ctx, policy); err != nil {
-		log.Error(err, "Failed to update status")
-
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
 }
 
 type configMapResList struct {
