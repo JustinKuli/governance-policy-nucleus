@@ -25,22 +25,8 @@ type FakePolicySpec struct {
 type FakePolicyStatus struct {
 	nucleusv1beta1.PolicyCoreStatus `json:",inline"`
 
-	// SelectedNamespaces stores the list of namespaces the policy applies to
-	SelectedNamespaces []string `json:"selectedNamespaces"`
-
-	// DynamicSelectedConfigMaps stores the list of configmaps the policy applies to, as determined
-	// by `GetMatchesDynamic`
-	DynamicSelectedConfigMaps []string `json:"dynamicSelectedConfigMaps"`
-
-	// ClientSelectedConfigMaps stores the list of configmaps the policy applies to, as determined
-	// by `GetMatches`
-	ClientSelectedConfigMaps []string `json:"clientSelectedConfigMaps"`
-
 	// SelectionComplete stores whether the selection has been completed
 	SelectionComplete bool `json:"selectionComplete"`
-
-	// SelectionError stores the error from the selection, if one occurred
-	SelectionError string `json:"selectionError"`
 }
 
 //+kubebuilder:object:root=true

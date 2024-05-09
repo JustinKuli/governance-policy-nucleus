@@ -3,6 +3,9 @@
 package test
 
 import (
+	"fmt"
+	"slices"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -48,12 +51,20 @@ var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
 
 			Expect(cleanlyCreate(&policy)).To(Succeed())
 
+			slices.Sort(desiredMatches)
+
 			Eventually(func(g Gomega) {
 				foundPolicy := fakev1beta1.FakePolicy{}
 				g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
 				g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
-				g.Expect(foundPolicy.Status.SelectedNamespaces).To(ConsistOf(desiredMatches))
-				g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
+
+				idx, cond := foundPolicy.Status.GetCondition("NamespaceSelection")
+				g.Expect(idx).NotTo(Equal(-1))
+				if selErr != "" {
+					g.Expect(cond.Message).To(Equal(selErr))
+				} else {
+					g.Expect(cond.Message).To(Equal(fmt.Sprintf("%v", desiredMatches)))
+				}
 			}).Should(Succeed())
 		},
 

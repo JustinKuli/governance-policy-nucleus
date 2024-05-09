@@ -3,6 +3,8 @@
 package test
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -131,6 +133,32 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 			"values set must be empty for exists and does not exist"),
 	}
 
+	checkFunc := func(policy fakev1beta1.FakePolicy, desiredMatches []string, selErr string) func(g Gomega) {
+		return func(g Gomega) {
+			foundPolicy := fakev1beta1.FakePolicy{}
+			g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
+			g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
+
+			slices.Sort(desiredMatches)
+
+			idx, cond := foundPolicy.Status.GetCondition("DynamicSelection")
+			g.Expect(idx).NotTo(Equal(-1))
+			if selErr != "" {
+				g.Expect(cond.Message).To(Equal(selErr))
+			} else {
+				g.Expect(cond.Message).To(Equal(fmt.Sprintf("%v", desiredMatches)))
+			}
+
+			idx, cond = foundPolicy.Status.GetCondition("ClientSelection")
+			g.Expect(idx).NotTo(Equal(-1))
+			if selErr != "" {
+				g.Expect(cond.Message).To(Equal(selErr))
+			} else {
+				g.Expect(cond.Message).To(Equal(fmt.Sprintf("%v", desiredMatches)))
+			}
+		}
+	}
+
 	Describe("Targets without a Namespace", Ordered, func() {
 		BeforeAll(beforeFunc)
 
@@ -141,14 +169,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 
 				Expect(cleanlyCreate(&policy)).To(Succeed())
 
-				Eventually(func(g Gomega) {
-					foundPolicy := fakev1beta1.FakePolicy{}
-					g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
-					g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
-					g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
-					g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
-					g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
-				}).Should(Succeed())
+				Eventually(checkFunc(policy, desiredMatches, selErr)).Should(Succeed())
 			},
 			entries,
 		)
@@ -174,14 +195,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 
 				Expect(cleanlyCreate(&policy)).To(Succeed())
 
-				Eventually(func(g Gomega) {
-					foundPolicy := fakev1beta1.FakePolicy{}
-					g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
-					g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
-					g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
-					g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
-					g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
-				}).Should(Succeed())
+				Eventually(checkFunc(policy, desiredMatches, selErr)).Should(Succeed())
 			},
 			entries,
 		)
@@ -198,14 +212,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 
 				Expect(cleanlyCreate(&policy)).To(Succeed())
 
-				Eventually(func(g Gomega) {
-					foundPolicy := fakev1beta1.FakePolicy{}
-					g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
-					g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
-					g.Expect(foundPolicy.Status.DynamicSelectedConfigMaps).To(ConsistOf(desiredMatches))
-					g.Expect(foundPolicy.Status.ClientSelectedConfigMaps).To(ConsistOf(desiredMatches))
-					g.Expect(foundPolicy.Status.SelectionError).To(Equal(selErr))
-				}).Should(Succeed())
+				Eventually(checkFunc(policy, desiredMatches, selErr)).Should(Succeed())
 			},
 			entries,
 		)

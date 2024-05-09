@@ -16,16 +16,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NOTE: json tags are required. Any new fields you add must have json tags for
-// the fields to be serialized.
-// Important: Run "make" to regenerate code after modifying this file
-
-// PolicyCoreSpec defines fields that policies must implement to be part of the
+// PolicyCoreSpec defines fields that policies should implement to be part of the
 // Open Cluster Management policy framework. The intention is for controllers
 // to embed this struct in their *Spec definitions.
 type PolicyCoreSpec struct {
 	// Severity defines how serious the situation is when the policy is not
-	// compliant. The severity should not change the behavior of the policy, but
+	// compliant. The severity might not change the behavior of the policy, but
 	// may be read and used by other tools. Accepted values include: low,
 	// medium, high, and critical.
 	Severity Severity `json:"severity,omitempty"`
@@ -156,11 +152,16 @@ func (l *namespaceResList) ObjectList() client.ObjectList {
 type NonEmptyString string
 
 // PolicyCoreStatus defines fields that policies should implement as part of
-// the Open Cluster Management policy framework.
+// the Open Cluster Management policy framework. The intent is for controllers
+// to embed this struct in their *Status definitions.
 type PolicyCoreStatus struct {
 	// ComplianceState indicates whether the policy is compliant or not.
 	// Accepted values include: Compliant, NonCompliant, and UnknownCompliancy
 	ComplianceState ComplianceState `json:"compliant,omitempty"`
+
+	// Conditions represent the latest available observations of the object's status. One of these
+	// items should have Type=Compliant and a message detailing the current compliance.
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:validation:Enum=Compliant;NonCompliant;UnknownCompliancy
