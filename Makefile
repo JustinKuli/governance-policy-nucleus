@@ -106,9 +106,16 @@ lint: $(GOLANGCI)
 
 ENVTEST_K8S_VERSION ?= 1.29
 .PHONY: test
-test: manifests generate $(GINKGO) $(ENVTEST) ## Run tests.
+test: manifests generate $(GINKGO) $(ENVTEST) ## Run all the tests
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \
 	  --coverpkg=./... --covermode=count --coverprofile=cover.out ./...
+
+test-unit: ## Run only the unit tests
+	go test --coverpkg=./... --covermode=count --coverprofile=cover-unit.out ./api/... ./pkg/...
+
+test-basicsuite: manifests generate $(GINKGO) $(ENVTEST) ## Run just the basic suite of tests
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \
+	  --coverpkg=./... --covermode=count --coverprofile=cover-basic.out ./test/fakepolicy/test/basic
 
 .PHONY: fuzz-test
 fuzz-test:

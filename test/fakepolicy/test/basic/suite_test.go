@@ -1,6 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
-package test
+package basic
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"open-cluster-management.io/governance-policy-nucleus/pkg/testutils"
 	"open-cluster-management.io/governance-policy-nucleus/test/fakepolicy"
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 )
@@ -30,12 +31,13 @@ var (
 	testEnv   *envtest.Environment
 	ctx       context.Context
 	cancel    context.CancelFunc
+	tk        testutils.Toolkit
 )
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "Controller Suite")
+	RunSpecs(t, "Basic Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -46,7 +48,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -64,6 +66,9 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
+
+	tk = testutils.NewToolkit(k8sClient)
+	tk.BackgroundCtx = ctx
 
 	go func() {
 		defer GinkgoRecover()

@@ -1,18 +1,20 @@
 // Copyright Contributors to the Open Cluster Management project
 
-package test
+package basic
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	. "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/test/utils"
 )
 
 var _ = Describe("FakePolicy CRD Validation", func() {
 	DescribeTable("Validating spec inputs",
-		func(severity, remediationAction string, include, exclude []string, isValid bool) {
-			policy := fromTestdata("fakepolicy-sample.yaml")
+		func(ctx SpecContext, severity, remediationAction string, include, exclude []string, isValid bool) {
+			policy := FromTestdata("fakepolicy-sample.yaml")
 
 			Expect(unstructured.SetNestedField(policy.Object,
 				severity, "spec", "severity")).To(Succeed())
@@ -24,8 +26,8 @@ var _ = Describe("FakePolicy CRD Validation", func() {
 				exclude, "spec", "namespaceSelector", "exclude")).To(Succeed())
 
 			if isValid {
-				Expect(cleanlyCreate(&policy)).To(Succeed())
-			} else if !errors.IsInvalid(cleanlyCreate(&policy)) {
+				Expect(tk.CleanlyCreate(ctx, &policy)).To(Succeed())
+			} else if !errors.IsInvalid(tk.CleanlyCreate(ctx, &policy)) {
 				Fail("Expected creating the policy to fail with an 'invalid' error")
 			}
 		},

@@ -1,6 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
-package test
+package basic
 
 import (
 	"fmt"
@@ -12,7 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
+	"open-cluster-management.io/governance-policy-nucleus/pkg/testutils"
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
+	. "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/test/utils"
 )
 
 var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
@@ -20,14 +22,14 @@ var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
 	sampleNamespaces := []string{"foo", "goo", "fake", "faze", "kube-one"}
 	allNamespaces := append(defaultNamespaces, sampleNamespaces...)
 
-	BeforeAll(func() {
+	BeforeAll(func(ctx SpecContext) {
 		By("Creating sample namespaces")
 		for _, ns := range sampleNamespaces {
 			nsObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
 				Name:   ns,
 				Labels: map[string]string{"sample": ns},
 			}}
-			Expect(cleanlyCreate(nsObj)).To(Succeed())
+			Expect(tk.CleanlyCreate(ctx, nsObj)).To(Succeed())
 		}
 
 		By("Ensuring the allNamespaces list is correct")
@@ -45,17 +47,17 @@ var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
 	})
 
 	DescribeTable("Verifying NamespaceSelector behavior",
-		func(sel nucleusv1beta1.NamespaceSelector, desiredMatches []string, selErr string) {
-			policy := sampleFakePolicy()
+		func(ctx SpecContext, sel nucleusv1beta1.NamespaceSelector, desiredMatches []string, selErr string) {
+			policy := SampleFakePolicy()
 			policy.Spec.NamespaceSelector = sel
 
-			Expect(cleanlyCreate(&policy)).To(Succeed())
+			Expect(tk.CleanlyCreate(ctx, &policy)).To(Succeed())
 
 			slices.Sort(desiredMatches)
 
 			Eventually(func(g Gomega) {
 				foundPolicy := fakev1beta1.FakePolicy{}
-				g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
+				g.Expect(k8sClient.Get(ctx, testutils.ObjNN(&policy), &foundPolicy)).To(Succeed())
 				g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
 
 				idx, cond := foundPolicy.Status.GetCondition("NamespaceSelection")
