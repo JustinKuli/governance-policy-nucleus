@@ -1,6 +1,6 @@
 // Copyright Contributors to the Open Cluster Management project
 
-package test
+package basic
 
 import (
 	"fmt"
@@ -13,7 +13,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
+	"open-cluster-management.io/governance-policy-nucleus/pkg/testutils"
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
+	. "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/test/utils"
 )
 
 var _ = Describe("FakePolicy TargetConfigMaps", func() {
@@ -32,7 +34,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 	}
 	allConfigMaps := append(defaultConfigMaps, sampleConfigMaps...)
 
-	beforeFunc := func() {
+	beforeFunc := func(ctx SpecContext) {
 		By("Creating sample configmaps")
 		for _, cm := range sampleConfigMaps {
 			ns, name, _ := strings.Cut(cm, "/")
@@ -44,7 +46,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 				},
 				Data: map[string]string{"foo": "bar"},
 			}
-			Expect(cleanlyCreate(cmObj)).To(Succeed())
+			Expect(tk.CleanlyCreate(ctx, cmObj)).To(Succeed())
 		}
 
 		By("Ensuring the allConfigMaps list is correct")
@@ -136,7 +138,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 	checkFunc := func(policy fakev1beta1.FakePolicy, desiredMatches []string, selErr string) func(g Gomega) {
 		return func(g Gomega) {
 			foundPolicy := fakev1beta1.FakePolicy{}
-			g.Expect(k8sClient.Get(ctx, getNamespacedName(&policy), &foundPolicy)).To(Succeed())
+			g.Expect(k8sClient.Get(ctx, testutils.ObjNN(&policy), &foundPolicy)).To(Succeed())
 			g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
 
 			slices.Sort(desiredMatches)
@@ -163,11 +165,11 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 		BeforeAll(beforeFunc)
 
 		DescribeTable("Verifying TargetConfigMaps behavior",
-			func(sel nucleusv1beta1.Target, desiredMatches []string, selErr string) {
-				policy := sampleFakePolicy()
+			func(ctx SpecContext, sel nucleusv1beta1.Target, desiredMatches []string, selErr string) {
+				policy := SampleFakePolicy()
 				policy.Spec.TargetConfigMaps = sel
 
-				Expect(cleanlyCreate(&policy)).To(Succeed())
+				Expect(tk.CleanlyCreate(ctx, &policy)).To(Succeed())
 
 				Eventually(checkFunc(policy, desiredMatches, selErr)).Should(Succeed())
 			},
@@ -179,7 +181,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 		BeforeAll(beforeFunc)
 
 		DescribeTable("Verifying TargetConfigMaps behavior",
-			func(sel nucleusv1beta1.Target, givenDesiredMatches []string, selErr string) {
+			func(ctx SpecContext, sel nucleusv1beta1.Target, givenDesiredMatches []string, selErr string) {
 				sel.Namespace = "default"
 
 				desiredMatches := make([]string, 0)
@@ -190,10 +192,10 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 					}
 				}
 
-				policy := sampleFakePolicy()
+				policy := SampleFakePolicy()
 				policy.Spec.TargetConfigMaps = sel
 
-				Expect(cleanlyCreate(&policy)).To(Succeed())
+				Expect(tk.CleanlyCreate(ctx, &policy)).To(Succeed())
 
 				Eventually(checkFunc(policy, desiredMatches, selErr)).Should(Succeed())
 			},
@@ -205,12 +207,12 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 		BeforeAll(beforeFunc)
 
 		DescribeTable("Verifying TargetConfigMaps behavior",
-			func(sel nucleusv1beta1.Target, desiredMatches []string, selErr string) {
-				policy := sampleFakePolicy()
+			func(ctx SpecContext, sel nucleusv1beta1.Target, desiredMatches []string, selErr string) {
+				policy := SampleFakePolicy()
 				policy.Spec.TargetConfigMaps = sel
 				policy.Spec.TargetUsingReflection = true
 
-				Expect(cleanlyCreate(&policy)).To(Succeed())
+				Expect(tk.CleanlyCreate(ctx, &policy)).To(Succeed())
 
 				Eventually(checkFunc(policy, desiredMatches, selErr)).Should(Succeed())
 			},

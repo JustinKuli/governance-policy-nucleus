@@ -1,4 +1,4 @@
-package test
+package basic
 
 import (
 	"encoding/json"
@@ -10,47 +10,49 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
+	"open-cluster-management.io/governance-policy-nucleus/pkg/testutils"
+	. "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/test/utils"
 )
 
 var _ = Describe("FakePolicy resource format verification", func() {
-	sampleYAML := fromTestdata("fakepolicy-sample.yaml")
-	extraFieldYAML := fromTestdata("extra-field.yaml")
-	emptyMatchExpressionsYAML := fromTestdata("empty-match-expressions.yaml")
+	sampleYAML := FromTestdata("fakepolicy-sample.yaml")
+	extraFieldYAML := FromTestdata("extra-field.yaml")
+	emptyMatchExpressionsYAML := FromTestdata("empty-match-expressions.yaml")
 
-	sample := sampleFakePolicy()
+	sample := SampleFakePolicy()
 
-	emptyInclude := sampleFakePolicy()
+	emptyInclude := SampleFakePolicy()
 	emptyInclude.Spec.NamespaceSelector.Include = []nucleusv1beta1.NonEmptyString{}
 
-	emptyLabelSelector := sampleFakePolicy()
+	emptyLabelSelector := SampleFakePolicy()
 	emptyLabelSelector.Spec.NamespaceSelector.LabelSelector = &metav1.LabelSelector{}
 
-	nilLabelSelector := sampleFakePolicy()
+	nilLabelSelector := SampleFakePolicy()
 	nilLabelSelector.Spec.NamespaceSelector.LabelSelector = nil
 
-	emptyMatchExpressions := sampleFakePolicy()
+	emptyMatchExpressions := SampleFakePolicy()
 	emptyMatchExpressions.Spec.NamespaceSelector.LabelSelector.MatchExpressions = []metav1.LabelSelectorRequirement{}
 
-	emptyNSSelector := sampleFakePolicy()
+	emptyNSSelector := SampleFakePolicy()
 	emptyNSSelector.Spec.NamespaceSelector = nucleusv1beta1.NamespaceSelector{}
 
-	emptySeverity := sampleFakePolicy()
+	emptySeverity := SampleFakePolicy()
 	emptySeverity.Spec.Severity = ""
 
-	emptyRemAction := sampleFakePolicy()
+	emptyRemAction := SampleFakePolicy()
 	emptyRemAction.Spec.RemediationAction = ""
 
-	reqSelector := sampleFakePolicy()
+	reqSelector := SampleFakePolicy()
 	reqSelector.Spec.NamespaceSelector.LabelSelector.MatchExpressions = []metav1.LabelSelectorRequirement{{
 		Key:      "sample",
 		Operator: metav1.LabelSelectorOpExists,
 	}}
 
 	// input is a clientObject so that either an Unstructured or the "real" type can be provided.
-	DescribeTable("Verifying spec stability", func(input client.Object, wantFile string) {
-		Expect(cleanlyCreate(input)).To(Succeed())
+	DescribeTable("Verifying spec stability", func(ctx SpecContext, input client.Object, wantFile string) {
+		Expect(tk.CleanlyCreate(ctx, input)).To(Succeed())
 
-		nn := getNamespacedName(input)
+		nn := testutils.ObjNN(input)
 		gotObj := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": "policy.open-cluster-management.io/v1beta1",
@@ -65,7 +67,7 @@ var _ = Describe("FakePolicy resource format verification", func() {
 		gotSpec, err := json.Marshal(gotObj.Object["spec"])
 		Expect(err).ToNot(HaveOccurred())
 
-		wantUnstruct := fromTestdata(wantFile)
+		wantUnstruct := FromTestdata(wantFile)
 		wantSpec, err := json.Marshal(wantUnstruct.Object["spec"])
 		Expect(err).ToNot(HaveOccurred())
 
