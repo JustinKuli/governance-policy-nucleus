@@ -39,6 +39,15 @@ spec:
           spec:
             description: FakePolicySpec defines the desired state of FakePolicy
             properties:
+              desiredConfigMapName:
+                description: DesiredConfigMapName - if this name is not found, the
+                  policy will report a violation
+                type: string
+              eventAnnotation:
+                description: |-
+                  EventAnnotation - if provided, this value will be annotated on the compliance
+                  events, under the "policy.open-cluster-management.io/test" key
+                type: string
               namespaceSelector:
                 description: |-
                   NamespaceSelector indicates which namespaces on the cluster this policy
@@ -130,7 +139,7 @@ spec:
                 - Critical
                 type: string
               targetConfigMaps:
-                description: targetConfigMaps defines the ConfigMaps which should
+                description: TargetConfigMaps defines the ConfigMaps which should
                   be examined by this policy
                 properties:
                   exclude:
@@ -196,7 +205,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               targetUsingReflection:
-                description: targetUsingReflection defines whether to use reflection
+                description: TargetUsingReflection defines whether to use reflection
                   to find the ConfigMaps
                 type: boolean
             type: object

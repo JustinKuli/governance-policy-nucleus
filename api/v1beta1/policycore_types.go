@@ -193,3 +193,27 @@ type PolicyCore struct {
 	Spec   PolicyCoreSpec   `json:"spec,omitempty"`
 	Status PolicyCoreStatus `json:"status,omitempty"`
 }
+
+//+kubebuilder:object:generate=false
+
+// PolicyLike is an interface that policies should implement so that they can
+// benefit from some of the general tools in the nucleus.
+type PolicyLike interface {
+	client.Object
+
+	// The ComplianceState (Compliant/NonCompliant) of the specific policy.
+	ComplianceState() ComplianceState
+
+	// A human-readable string describing the current state of the policy, and why it is either
+	// Compliant or NonCompliant.
+	ComplianceMessage() string
+
+	// The "parent" object on this cluster for the specific policy. Generally a Policy, in the API
+	// GroupVersion `policy.open-cluster-management.io/v1`. For namespaced kinds of policies, this
+	// will usually be the owner of the policy. For cluster-scoped policies, this must be stored
+	// some other way.
+	Parent() metav1.OwnerReference
+
+	// The namespace of the "parent" object.
+	ParentNamespace() string
+}

@@ -77,7 +77,7 @@ func Run(parentCtx context.Context, cfg *rest.Config) error {
 
 		cfg, err = ctrl.GetConfig()
 		if err != nil {
-			setupLog.Error(err, "unable to get kubernetes config")
+			setupLog.Error(err, "unable to get Kubernetes config")
 
 			return err
 		}

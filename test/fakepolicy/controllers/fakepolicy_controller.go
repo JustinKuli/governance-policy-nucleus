@@ -19,15 +19,21 @@ import (
 
 	nucleusv1alpha1 "open-cluster-management.io/governance-policy-nucleus/api/v1alpha1"
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
+	"open-cluster-management.io/governance-policy-nucleus/pkg/compliance"
 	fakev1beta1 "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/api/v1beta1"
 )
 
-// FakePolicyReconciler reconciles a FakePolicy object
+// FakePolicyReconciler reconciles a FakePolicy object.
+// NOTE: it does not watch anything other than FakePolcies, so it will not react
+// to other changes in the cluster - update something on the policy to make it
+// re-reconcile.
 type FakePolicyReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
 	DynamicClient *dynamic.DynamicClient
 }
+
+const mutatorAnno string = "policy.open-cluster-management.io/test"
 
 // Usual RBAC for fakepolicy:
 //+kubebuilder:rbac:groups=policy.open-cluster-management.io,resources=fakepolicies,verbs=get;list;watch;create;update;patch;delete
@@ -42,11 +48,13 @@ type FakePolicyReconciler struct {
 
 func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
+	log.Info("Starting a reconcile")
 
 	policy := &fakev1beta1.FakePolicy{}
 	if err := r.Get(ctx, req.NamespacedName, policy); err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, probably deleted
+			log.Info("Request object not found, probably deleted")
+
 			return ctrl.Result{}, nil
 		}
 
@@ -55,7 +63,33 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	r.doSelections(ctx, policy)
+	cmFound := r.doSelections(ctx, policy)
+
+	policy.Status.SelectionComplete = true
+
+	complianceCondition := metav1.Condition{
+		Type:    "Compliant",
+		Status:  metav1.ConditionTrue,
+		Reason:  "Found",
+		Message: "the desired configmap was found",
+	}
+
+	policy.Status.ComplianceState = nucleusv1beta1.Compliant
+
+	if !cmFound {
+		complianceCondition.Status = metav1.ConditionFalse
+		complianceCondition.Reason = "NotFound"
+		complianceCondition.Message = "the desired configmap was missing"
+		policy.Status.ComplianceState = nucleusv1beta1.NonCompliant
+	}
+
+	changed := policy.Status.UpdateCondition(complianceCondition)
+
+	if !changed {
+		log.Info("No change; no compliance event to emit")
+
+		return ctrl.Result{}, nil
+	}
 
 	if err := r.Status().Update(ctx, policy); err != nil {
 		log.Error(err, "Failed to update status")
@@ -63,10 +97,41 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	emitter := compliance.K8sEmitter{
+		Client: r.Client,
+	}
+
+	if policy.Spec.EventAnnotation != "" {
+		emitter.Mutators = []func(inpEv corev1.Event) (corev1.Event, error){
+			func(inpEv corev1.Event) (corev1.Event, error) {
+				if inpEv.Annotations == nil {
+					inpEv.Annotations = make(map[string]string)
+				}
+
+				inpEv.Annotations[mutatorAnno] = policy.Spec.EventAnnotation
+
+				return inpEv, nil
+			},
+		}
+
+		// it's cheating a bit to put this here but it's helpful to test that
+		// the events work both when this is and when this is not specified
+		emitter.Source = corev1.EventSource{
+			Component: policy.Spec.EventAnnotation,
+			Host:      policy.Spec.EventAnnotation,
+		}
+	}
+
+	ev, err := emitter.EmitEvent(ctx, policy)
+
+	log.Info("Event emitted", "eventName", ev.Name)
+
+	return ctrl.Result{}, err
 }
 
-func (r *FakePolicyReconciler) doSelections(ctx context.Context, policy *fakev1beta1.FakePolicy) {
+func (r *FakePolicyReconciler) doSelections(
+	ctx context.Context, policy *fakev1beta1.FakePolicy,
+) (configMapFound bool) {
 	log := log.FromContext(ctx)
 
 	nsCond := metav1.Condition{
@@ -150,6 +215,10 @@ func (r *FakePolicyReconciler) doSelections(ctx context.Context, policy *fakev1b
 		clientCMs := make([]string, len(clientMatchedCMs))
 		for i, cm := range dynamicMatchedCMs {
 			clientCMs[i] = cm.GetNamespace() + "/" + cm.GetName()
+
+			if cm.GetName() == policy.Spec.DesiredConfigMapName {
+				configMapFound = true
+			}
 		}
 
 		slices.Sort(clientCMs)
@@ -159,7 +228,7 @@ func (r *FakePolicyReconciler) doSelections(ctx context.Context, policy *fakev1b
 
 	policy.Status.UpdateCondition(clientCond)
 
-	policy.Status.SelectionComplete = true
+	return configMapFound
 }
 
 type configMapResList struct {

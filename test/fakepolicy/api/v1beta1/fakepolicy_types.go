@@ -12,11 +12,18 @@ import (
 type FakePolicySpec struct {
 	nucleusv1beta1.PolicyCoreSpec `json:",inline"`
 
-	// targetConfigMaps defines the ConfigMaps which should be examined by this policy
+	// TargetConfigMaps defines the ConfigMaps which should be examined by this policy
 	TargetConfigMaps nucleusv1beta1.Target `json:"targetConfigMaps,omitempty"`
 
-	// targetUsingReflection defines whether to use reflection to find the ConfigMaps
+	// TargetUsingReflection defines whether to use reflection to find the ConfigMaps
 	TargetUsingReflection bool `json:"targetUsingReflection,omitempty"`
+
+	// DesiredConfigMapName - if this name is not found, the policy will report a violation
+	DesiredConfigMapName string `json:"desiredConfigMapName,omitempty"`
+
+	// EventAnnotation - if provided, this value will be annotated on the compliance
+	// events, under the "policy.open-cluster-management.io/test" key
+	EventAnnotation string `json:"eventAnnotation,omitempty"`
 }
 
 //+kubebuilder:validation:Optional
@@ -39,6 +46,34 @@ type FakePolicy struct {
 
 	Spec   FakePolicySpec   `json:"spec,omitempty"`
 	Status FakePolicyStatus `json:"status,omitempty"`
+}
+
+// ensure FakePolicy implements PolicyLike
+var _ nucleusv1beta1.PolicyLike = (*FakePolicy)(nil)
+
+func (f FakePolicy) ComplianceState() nucleusv1beta1.ComplianceState {
+	return f.Status.ComplianceState
+}
+
+func (f FakePolicy) ComplianceMessage() string {
+	idx, compCond := f.Status.GetCondition("Compliant")
+	if idx == -1 {
+		return ""
+	}
+
+	return compCond.Message
+}
+
+func (f FakePolicy) Parent() metav1.OwnerReference {
+	if len(f.OwnerReferences) == 0 {
+		return metav1.OwnerReference{}
+	}
+
+	return f.OwnerReferences[0]
+}
+
+func (f FakePolicy) ParentNamespace() string {
+	return f.Namespace
 }
 
 //+kubebuilder:object:root=true
