@@ -117,6 +117,10 @@ test-basicsuite: manifests generate $(GINKGO) $(ENVTEST) ## Run just the basic s
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \
 	  --coverpkg=./... --covermode=count --coverprofile=cover-basic.out ./test/fakepolicy/test/basic
 
+test-compsuite: manifests generate $(GINKGO) $(ENVTEST) ## Run just the compliance event tests
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \
+	  --coverpkg=./... --covermode=count --coverprofile=cover-comp.out ./test/fakepolicy/test/compliance
+
 .PHONY: fuzz-test
 fuzz-test:
 	go test ./api/v1beta1 -fuzz=FuzzMatchesExcludeAll -fuzztime=20s
