@@ -89,7 +89,8 @@ generate: $(CONTROLLER_GEN) ## Generate code containing DeepCopy, DeepCopyInto, 
 fmt: $(GOFUMPT) $(GCI)
 	go mod tidy
 	find . -not \( -path "./.go" -prune \) -name "*.go" | xargs $(GOFUMPT) -l -w
-	find . -not \( -path "./.go" -prune \) -name "*.go" | xargs $(GCI) write --skip-generated -s standard -s default -s localmodule
+	find . -not \( -path "./.go" -prune \) -name "*.go" | xargs $(GCI) write --skip-generated \
+	  -s standard -s default -s Prefix\(open-cluster-management.io\)
 
 .PHONY: vet
 vet: $(GOSEC)

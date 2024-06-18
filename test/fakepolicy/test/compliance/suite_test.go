@@ -34,6 +34,7 @@ var (
 	tk        testutils.Toolkit
 )
 
+//nolint:paralleltest // scaffolded this way by ginkgo
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 

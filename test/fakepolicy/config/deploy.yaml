@@ -26,7 +26,7 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: FakePolicy is the Schema for the fakepolicies API
+        description: FakePolicy is the Schema for the fakepolicies API.
         properties:
           apiVersion:
             description: |-
@@ -46,7 +46,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: FakePolicySpec defines the desired state of FakePolicy
+            description: FakePolicySpec defines the desired state of FakePolicy.
             properties:
               desiredConfigMapName:
                 description: DesiredConfigMapName - if this name is not found, the
@@ -219,7 +219,7 @@ spec:
                 type: boolean
             type: object
           status:
-            description: FakePolicyStatus defines the observed state of FakePolicy
+            description: FakePolicyStatus defines the observed state of FakePolicy.
             properties:
               compliant:
                 description: |-

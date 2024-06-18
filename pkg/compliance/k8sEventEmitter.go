@@ -40,26 +40,26 @@ func (e K8sEmitter) Emit(ctx context.Context, pl nucleusv1beta1.PolicyLike) erro
 // EmitEvent creates the Kubernetes Event on the cluster. It returns the Event
 // that was (at least) attempted to be created, and an error if the API call
 // fails.
-func (e K8sEmitter) EmitEvent(ctx context.Context, pl nucleusv1beta1.PolicyLike) (*corev1.Event, error) {
-	plGVK := pl.GetObjectKind().GroupVersionKind()
-	time := time.Now()
+func (e K8sEmitter) EmitEvent(ctx context.Context, pol nucleusv1beta1.PolicyLike) (*corev1.Event, error) {
+	plGVK := pol.GetObjectKind().GroupVersionKind()
+	now := time.Now()
 
 	// This event name matches the convention of recorders from client-go
-	name := fmt.Sprintf("%v.%x", pl.Parent().Name, time.UnixNano())
+	name := fmt.Sprintf("%v.%x", pol.Parent().Name, now.UnixNano())
 
 	// The reason must match a pattern looked for by the policy framework
 	var reason string
-	if ns := pl.GetNamespace(); ns != "" {
-		reason = "policy: " + ns + "/" + pl.GetName()
+	if ns := pol.GetNamespace(); ns != "" {
+		reason = "policy: " + ns + "/" + pol.GetName()
 	} else {
-		reason = "policy: " + pl.GetName()
+		reason = "policy: " + pol.GetName()
 	}
 
 	// The message must begin with the compliance, then should go into a descriptive message
-	message := string(pl.ComplianceState()) + "; " + pl.ComplianceMessage()
+	message := string(pol.ComplianceState()) + "; " + pol.ComplianceMessage()
 
 	evType := "Normal"
-	if pl.ComplianceState() != nucleusv1beta1.Compliant {
+	if pol.ComplianceState() != nucleusv1beta1.Compliant {
 		evType = "Warning"
 	}
 
@@ -84,34 +84,34 @@ func (e K8sEmitter) EmitEvent(ctx context.Context, pl nucleusv1beta1.PolicyLike)
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
-			Namespace:   pl.ParentNamespace(),
-			Labels:      pl.GetLabels(),
-			Annotations: pl.GetAnnotations(),
+			Namespace:   pol.ParentNamespace(),
+			Labels:      pol.GetLabels(),
+			Annotations: pol.GetAnnotations(),
 		},
 		InvolvedObject: corev1.ObjectReference{
-			Kind:       pl.Parent().Kind,
-			Namespace:  pl.ParentNamespace(),
-			Name:       pl.Parent().Name,
-			UID:        pl.Parent().UID,
-			APIVersion: pl.Parent().APIVersion,
+			Kind:       pol.Parent().Kind,
+			Namespace:  pol.ParentNamespace(),
+			Name:       pol.Parent().Name,
+			UID:        pol.Parent().UID,
+			APIVersion: pol.Parent().APIVersion,
 		},
 		Reason:         reason,
 		Message:        message,
 		Source:         src,
-		FirstTimestamp: metav1.NewTime(time),
-		LastTimestamp:  metav1.NewTime(time),
+		FirstTimestamp: metav1.NewTime(now),
+		LastTimestamp:  metav1.NewTime(now),
 		Count:          1,
 		Type:           evType,
-		EventTime:      metav1.NewMicroTime(time),
+		EventTime:      metav1.NewMicroTime(now),
 		Series:         nil,
 		Action:         "ComplianceStateUpdate",
 		Related: &corev1.ObjectReference{
 			Kind:            plGVK.Kind,
-			Namespace:       pl.GetNamespace(),
-			Name:            pl.GetName(),
-			UID:             pl.GetUID(),
+			Namespace:       pol.GetNamespace(),
+			Name:            pol.GetName(),
+			UID:             pol.GetUID(),
 			APIVersion:      plGVK.GroupVersion().String(),
-			ResourceVersion: pl.GetResourceVersion(),
+			ResourceVersion: pol.GetResourceVersion(),
 		},
 		ReportingController: src.Component,
 		ReportingInstance:   src.Host,

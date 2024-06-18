@@ -1,162 +1,99 @@
-# Reference: https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
+# Reference: https://golangci-lint.run/usage/configuration/
 run:
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  deadline: 20m
-  timeout: 20m
+  # timeout for analysis, e.g. 30s, 5m. Default: 1m
+  timeout: 5m
 
 linters:
+  # Disable only specific linters. Since a specific version of golangci-lint is 
+  # used in the CI, this should be reasonably stable. The checks should only
+  # "surprisingly" fail when the version is updated.
   enable-all: true
   disable:
-    - bodyclose
-    - copyloopvar # prefer old style for now, more reliable across various scanners
-    - cyclop
-    - deadcode #deprecated
-    - depguard
-    - dupl
-    - funlen
-    - exhaustruct
+    - copyloopvar     # Prefer the old style for now, it's more reliable across various scanners.
+    - depguard        # No deps we need to guard against.
+    - exhaustruct     # Too exhausting to initialize everything in many k8s objects.
+    - gochecknoinits  # Init statements can be good.
+    - gochecksumtype  # This would require using another tool to define sumtypes.
+    - gomoddirectives # Replace directives are necessary.
+    - gomodguard      # No mods we need to guard against.
+    - interfacebloat  # This is a job for a reviwer, not a linter.
+    - intrange        # Too new of a language feature for now.
+    - nonamedreturns  # Named returns can be good.
+    - nolintlint      # Sometimes gives a false positive based on caching.
+    - testifylint     # This package is not used in the tests.
+    - testpackage     # The _test package is only sometimes helpful.
+    - wrapcheck       # Always wrapping is overkill.
+    - wsl             # Too opinionated; nlreturn and whitespace are sufficient.
+
+    # The following linters are deprecated.
+    - deadcode
     - exhaustivestruct
-    - forcetypeassert
-    - gci # disable until it's more configurable
-    - gochecknoglobals
-    - gochecknoinits
-    - gocognit
-    - goconst
-    - gocyclo
-    - godot
-    - err113
-    - golint # replaced by revive
-    - gomnd
-    - gomoddirectives
-    - gosec
+    - execinquery
+    - golint
     - ifshort
     - interfacer
-    - intrange # prefer old style
-    - ireturn # New linter to consider
     - maligned
-    - maintidx # New linter to consider
-    - nakedret
-    - nestif
-    - nilnil # New linter to consider
-    - nonamedreturns # New linter to consider
-    - paralleltest
-    - prealloc
-    - revive
+    - gomnd
+    - nosnakecase
     - scopelint
-    - structcheck #deprecated
-    - stylecheck
-    - testpackage
-    - varcheck #deprecated
-    - varnamelen # New linter to consider
-    - wrapcheck
-  fast: false
+    - structcheck
+    - varcheck
 
 linters-settings:
   errcheck:
-    # report about not checking of errors in type assetions: `a := b.(MyStruct)`;
-    # default is false: such cases aren't reported by default.
-    check-type-assertions: false
-
-    # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
-    # default is false: such cases aren't reported by default.
-    check-blank: false
-  govet:
-    # report about shadowed variables
-    check-shadowing: false
+    # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+    # Such cases aren't reported by default.
+    check-type-assertions: true
+  funlen:
+    # Checks the number of lines in a function.
+    # If lower than 0, disable the check. Default: 60
+    lines: 120
   gci:
-     sections:
-      - prefix(open-cluster-management.io/governance-policy-nucleus)
-  golint:
-    # minimal confidence for issues, default is 0.8
-    min-confidence: 0.0
-  gofmt:
-    # simplify code: gofmt with `-s` option, true by default
-    simplify: true
-  maligned:
-    # print struct with more effective memory layout or not, false by default
-    suggest-new: true
+    sections:
+      - standard
+      - default
+      - prefix(open-cluster-management.io)
+  gocritic:
+    enable-all: true
+    disabled-checks:
+      - hugeParam # Passing by value is helpful to imply no mutation.
+  goheader:
+    template: Copyright Contributors to the Open Cluster Management project
+  lll:
+    # Max line length, lines longer will be reported.
+    # '\t' is counted as 1 character by default, and can be changed with the tab-width option.
+    line-length: 120
+    # Tab width in spaces. Default: 1
+    tab-width: 4
   misspell:
     # Correct spellings using locale preferences for US or UK.
-    # Default is to use a neutral variety of English.
     # Setting locale to US will correct the British spelling of 'colour' to 'color'.
+    # Default is to use a neutral variety of English.
     locale: US
     ignore-words:
-    - cancelled
-  lll:
-    # max line length, lines longer will be reported. Default is 120.
-    # '\t' is counted as 1 character by default, and can be changed with the tab-width option
-    line-length: 120
-    # tab width in spaces. Default to 1.
-    tab-width: 4
-  unused:
-    # treat code as a program (not a library) and report unused exported identifiers; default is false.
-    # XXX: if you enable this setting, unused will report a lot of false-positives in text editors:
-    # if it's called for subdir of a project it can't find funcs usages. All text editor integrations
-    # with golangci-lint call it on a directory with the changed file.
-    check-exported: false
-  unparam:
-    # call graph construction algorithm (cha, rta). In general, use cha for libraries,
-    # and rta for programs with main packages. Default is cha.
-    algo: cha
-
-    # Inspect exported functions, default is false. Set to true if no external program/library imports your code.
-    # XXX: if you enable this setting, unparam will report a lot of false-positives in text editors:
-    # if it's called for subdir of a project it can't find external interfaces. All text editor integrations
-    # with golangci-lint call it on a directory with the changed file.
-    check-exported: false
-  gocritic:
-    enabled-checks:
-      - appendCombine
-      - boolExprSimplify
-      - builtinShadow
-      - commentedOutCode
-      - commentedOutImport
-      - docStub
-      - emptyFallthrough
-      - equalFold
-      - hexLiteral
-      - indexAlloc
-      - initClause
-      - methodExprCall
-      - nilValReturn
-      - octalLiteral
-      - rangeExprCopy
-      - stringXbytes
-      - typeAssertChain
-      - typeUnparen
-      - unnecessaryBlock
-      - weakCond
+      - cancelled
+  nakedret:
+    # Make an issue if func has more lines of code than this setting, and it has naked returns.
+    max-func-lines: 1
+  varnamelen:
+    max-distance: 15
+    ignore-decls:
+      - r client.Reader
+      - ok bool
 
 issues:
   # List of regexps of issue texts to exclude, empty list by default.
   # But independently from this option we use default exclude patterns,
   # it can be disabled by `exclude-use-default: false`. To list all
   # excluded by default patterns execute `golangci-lint run --help`
-  exclude:
-    - composite literal uses unkeyed fields
-    - return statements should not be cuddled if block has more than two lines
-    - declarations should never be cuddled
-    - don't use leading k in Go names
+  exclude: []
 
   exclude-rules:
     # Allow dot imports in the tests.
-    - path: _test\.go$|^test/
+    - path: _test\.go
       linters:
-        - gci
-        - golint
         - revive
-        - stylecheck
-      source: \. "github\.com/onsi/(gomega|ginkgo)"
-    # Allow interface in the tests.
-    - path: _test\.go$|^test/
-      linters:
-        - forbidgo
-      source: fmt\.Print
-    # Allow returning interface in the tests.
-    - path: _test\.go$|^test/
-      linters:
-        - ireturn
-      source: func
+      text: dot imports
     # Don't enforce max line length for kubebuilder markers
     - linters:
         - lll
@@ -165,20 +102,24 @@ issues:
     - linters:
         - lll
       source: \/\/ ?https?:\/\/
-    # Don't enforce whitespace rules on test files
+    # Don't enforce some rules on test files
     - path: _test\.go$
       linters:
+        - varnamelen
         - wsl
-
-  # Independently from option `exclude` we use default exclude patterns,
-  # it can be disabled by this option. To list all
-  # excluded by default patterns execute `golangci-lint run --help`.
-  # Default value for this option is true.
-  exclude-use-default: true
-
-  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
-  max-per-linter: 0
+        - ireturn
+        - gochecknoglobals
+        - dupl
+        - funlen
+    # main.go tends to have longer functions
+    - path: main.go
+      linters:
+        - funlen
+        - cyclop
 
   # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
   max-same-issues: 0
+
+  # Fix found issues (if it's supported by the linter). Default: false
+  fix: false
   

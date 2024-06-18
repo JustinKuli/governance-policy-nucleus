@@ -1,3 +1,5 @@
+// Copyright Contributors to the Open Cluster Management project
+
 package v1alpha1
 
 import (
@@ -20,7 +22,7 @@ type ReflectiveResourceList struct {
 	ClientList client.ObjectList
 }
 
-// ensure ReflectiveResourceList implements ResourceList
+// ensure ReflectiveResourceList implements ResourceList.
 var _ v1beta1.ResourceList = (*ReflectiveResourceList)(nil)
 
 // Items returns the list of items in the list. Since this implementation uses reflection, it may
@@ -82,6 +84,7 @@ func (l *ReflectiveResourceList) Items() ([]client.Object, error) {
 	return items, nil
 }
 
+//nolint:ireturn // the ResourceList interface requires this interface return
 func (l *ReflectiveResourceList) ObjectList() client.ObjectList {
 	return l.ClientList
 }

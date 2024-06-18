@@ -23,7 +23,7 @@ func ObjNN(obj client.Object) types.NamespacedName {
 // value to ignore that field when filtering. The msg parameter will be compiled into a regex if
 // possible. The since parameter checks against the event's EventTime - but if the event does not
 // specify an EventTime, it will not be filtered out.
-func EventFilter(evs []corev1.Event, evType, msg string, since time.Time) []corev1.Event {
+func EventFilter(events []corev1.Event, evType, msg string, since time.Time) []corev1.Event {
 	msgRegex, err := regexp.Compile(msg)
 	if err != nil {
 		msgRegex = regexp.MustCompile(regexp.QuoteMeta(msg))
@@ -31,20 +31,20 @@ func EventFilter(evs []corev1.Event, evType, msg string, since time.Time) []core
 
 	ans := make([]corev1.Event, 0)
 
-	for _, ev := range evs {
-		if evType != "" && ev.Type != evType {
+	for i := range events {
+		if evType != "" && events[i].Type != evType {
 			continue
 		}
 
-		if !msgRegex.MatchString(ev.Message) {
+		if !msgRegex.MatchString(events[i].Message) {
 			continue
 		}
 
-		if !ev.EventTime.IsZero() && since.After(ev.EventTime.Time) {
+		if !events[i].EventTime.IsZero() && since.After(events[i].EventTime.Time) {
 			continue
 		}
 
-		ans = append(ans, ev)
+		ans = append(ans, events[i])
 	}
 
 	return ans
