@@ -60,6 +60,7 @@ jobs:
 
       - run: |
           make test
+          grep -v 'zz_generated.deepcopy.go' raw-cover.out > cover.out
 
       - name: Update coverage report
         uses: ncruces/go-coverage-report@v0
