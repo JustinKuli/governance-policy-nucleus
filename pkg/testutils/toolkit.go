@@ -28,6 +28,8 @@ type Toolkit struct {
 
 // NewToolkit returns a toolkit using the given Client, with some basic defaults.
 // This is the preferred way to get a Toolkit instance, to avoid unset fields.
+//
+//nolint:gocritic // package client is shadowed, but any other name would be confusing
 func NewToolkit(client client.Client) Toolkit {
 	return Toolkit{
 		Client:              client,
@@ -39,11 +41,11 @@ func NewToolkit(client client.Client) Toolkit {
 	}
 }
 
-// cleanlyCreate creates the given object, and registers a callback to delete the object which
+// CleanlyCreate creates the given object, and registers a callback to delete the object which
 // Ginkgo will call at the appropriate time. The error from the `Create` call is returned (so it
 // can be checked) and the `Delete` callback handles 'NotFound' errors as a success.
 func (tk Toolkit) CleanlyCreate(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	createErr := tk.Create(ctx, obj)
+	createErr := tk.Create(ctx, obj, opts...)
 
 	if createErr == nil {
 		ginkgo.DeferCleanup(func() {
@@ -103,7 +105,7 @@ func (tk Toolkit) Update(
 
 // This regular expression is copied from
 // https://github.com/open-cluster-management-io/governance-policy-framework-addon/blob/v0.13.0/controllers/statussync/policy_status_sync.go#L220
-var compEventRegex = regexp.MustCompile(`(?i)^policy:\s*(?:([a-z0-9.-]+)\s*\/)?(.+)`)
+var compEventRegex = regexp.MustCompile(`(?i)^policy:\s*(?:([a-z0-9.-]+)\s*\/)?(.+)`) //nolint:gocritic // copy
 
 // GetComplianceEvents queries the cluster and returns a sorted list of the Kubernetes
 // compliance events for the given policy.
@@ -119,8 +121,8 @@ func (tk Toolkit) GetComplianceEvents(
 
 	events := make([]corev1.Event, 0)
 
-	for _, event := range list.Items {
-		event := event
+	for i := range list.Items {
+		event := list.Items[i]
 
 		if event.InvolvedObject.UID != parentUID {
 			continue
@@ -152,6 +154,7 @@ func (tk Toolkit) EC(
 	eDesc := make([]interface{}, 1)
 	cDesc := make([]interface{}, 1)
 
+	//nolint:forcetypeassert // gomega makes the same unchecked assertions
 	switch len(optionalDescription) {
 	case 0:
 		eDesc[0] = "Failed in Eventually"
@@ -170,10 +173,10 @@ func (tk Toolkit) EC(
 		}
 	default:
 		eDesc[0] = "Failed in Eventually; " + optionalDescription[0].(string)
-		eDesc = append(eDesc, optionalDescription[1:]...) //nolint: makezero // appending is definitely correct
+		eDesc = append(eDesc, optionalDescription[1:]...) //nolint:makezero // appending is definitely correct
 
 		cDesc[0] = "Failed in Consistently; " + optionalDescription[0].(string)
-		cDesc = append(cDesc, optionalDescription[1:]...) //nolint: makezero // appending is definitely correct
+		cDesc = append(cDesc, optionalDescription[1:]...) //nolint:makezero // appending is definitely correct
 	}
 
 	gomega.Eventually(

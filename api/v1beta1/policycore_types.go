@@ -81,19 +81,19 @@ func (sel NamespaceSelector) MarshalJSON() ([]byte, error) {
 			Include: sel.Include,
 			Exclude: sel.Exclude,
 		})
-	} else {
-		return json.Marshal(struct {
-			MatchLabels      map[string]string                 `json:"matchLabels"`
-			MatchExpressions []metav1.LabelSelectorRequirement `json:"matchExpressions"`
-			Include          []NonEmptyString                  `json:"include,omitempty"`
-			Exclude          []NonEmptyString                  `json:"exclude,omitempty"`
-		}{
-			MatchLabels:      sel.MatchLabels,
-			MatchExpressions: sel.MatchExpressions,
-			Include:          sel.Include,
-			Exclude:          sel.Exclude,
-		})
 	}
+
+	return json.Marshal(struct {
+		MatchLabels      map[string]string                 `json:"matchLabels"`
+		MatchExpressions []metav1.LabelSelectorRequirement `json:"matchExpressions"`
+		Include          []NonEmptyString                  `json:"include,omitempty"`
+		Exclude          []NonEmptyString                  `json:"exclude,omitempty"`
+	}{
+		MatchLabels:      sel.MatchLabels,
+		MatchExpressions: sel.MatchExpressions,
+		Include:          sel.Include,
+		Exclude:          sel.Exclude,
+	})
 }
 
 // GetNamespaces fetches all namespaces in the cluster and returns a list of the
@@ -101,7 +101,7 @@ func (sel NamespaceSelector) MarshalJSON() ([]byte, error) {
 // for viewing namespaces, like the access given by this kubebuilder tag:
 // `//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch`
 //
-// NOTE: unlike Target, an empty NamespaceSelector will match zero namespaces
+// NOTE: unlike Target, an empty NamespaceSelector will match zero namespaces.
 func (sel NamespaceSelector) GetNamespaces(ctx context.Context, r client.Reader) ([]string, error) {
 	if len(sel.Include) == 0 && sel.LabelSelector == nil {
 		// A somewhat special case of no matches.
@@ -131,7 +131,7 @@ type namespaceResList struct {
 	corev1.NamespaceList
 }
 
-// ensure namespaceResList implements ResourceList
+// ensure namespaceResList implements ResourceList.
 var _ ResourceList = (*namespaceResList)(nil)
 
 func (l *namespaceResList) Items() ([]client.Object, error) {
@@ -143,6 +143,7 @@ func (l *namespaceResList) Items() ([]client.Object, error) {
 	return items, nil
 }
 
+//nolint:ireturn // the ResourceList interface requires this interface return
 func (l *namespaceResList) ObjectList() client.ObjectList {
 	return &l.NamespaceList
 }
@@ -185,7 +186,7 @@ const (
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// PolicyCore is the Schema for the policycores API
+// PolicyCore is the Schema for the policycores API.
 type PolicyCore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

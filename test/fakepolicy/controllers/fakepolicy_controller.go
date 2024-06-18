@@ -47,18 +47,18 @@ const mutatorAnno string = "policy.open-cluster-management.io/test"
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 
 func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
-	log.Info("Starting a reconcile")
+	logr := log.FromContext(ctx)
+	logr.Info("Starting a reconcile")
 
 	policy := &fakev1beta1.FakePolicy{}
 	if err := r.Get(ctx, req.NamespacedName, policy); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("Request object not found, probably deleted")
+			logr.Info("Request object not found, probably deleted")
 
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get FakePolicy")
+		logr.Error(err, "Failed to get FakePolicy")
 
 		return ctrl.Result{}, err
 	}
@@ -86,13 +86,13 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	changed := policy.Status.UpdateCondition(complianceCondition)
 
 	if !changed {
-		log.Info("No change; no compliance event to emit")
+		logr.Info("No change; no compliance event to emit")
 
 		return ctrl.Result{}, nil
 	}
 
 	if err := r.Status().Update(ctx, policy); err != nil {
-		log.Error(err, "Failed to update status")
+		logr.Error(err, "Failed to update status")
 
 		return ctrl.Result{}, err
 	}
@@ -124,7 +124,7 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	ev, err := emitter.EmitEvent(ctx, policy)
 
-	log.Info("Event emitted", "eventName", ev.Name)
+	logr.Info("Event emitted", "eventName", ev.Name)
 
 	return ctrl.Result{}, err
 }
@@ -132,7 +132,7 @@ func (r *FakePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *FakePolicyReconciler) doSelections(
 	ctx context.Context, policy *fakev1beta1.FakePolicy,
 ) (configMapFound bool) {
-	log := log.FromContext(ctx)
+	logr := log.FromContext(ctx)
 
 	nsCond := metav1.Condition{
 		Type:   "NamespaceSelection",
@@ -142,11 +142,11 @@ func (r *FakePolicyReconciler) doSelections(
 
 	selectedNamespaces, err := policy.Spec.NamespaceSelector.GetNamespaces(ctx, r.Client)
 	if err != nil {
-		log.Error(err, "Failed to GetNamespaces using NamespaceSelector",
+		logr.Error(err, "Failed to GetNamespaces using NamespaceSelector",
 			"selector", policy.Spec.NamespaceSelector)
 
 		nsCond.Status = metav1.ConditionFalse
-		nsCond.Reason = "Error"
+		nsCond.Reason = "ErrorSelecting"
 		nsCond.Message = err.Error()
 	} else {
 		slices.Sort(selectedNamespaces)
@@ -170,11 +170,11 @@ func (r *FakePolicyReconciler) doSelections(
 
 	dynamicMatchedCMs, err := policy.Spec.TargetConfigMaps.GetMatchesDynamic(ctx, cmIface)
 	if err != nil {
-		log.Error(err, "Failed to GetMatchesDynamic for the TargetConfigMaps",
+		logr.Error(err, "Failed to GetMatchesDynamic for the TargetConfigMaps",
 			"target", policy.Spec.TargetConfigMaps)
 
 		dynCond.Status = metav1.ConditionFalse
-		dynCond.Reason = "Error"
+		dynCond.Reason = "ErrorDynamicMatching"
 		dynCond.Message = err.Error()
 	} else {
 		dynamicCMs := make([]string, len(dynamicMatchedCMs))
@@ -205,11 +205,11 @@ func (r *FakePolicyReconciler) doSelections(
 
 	clientMatchedCMs, err := policy.Spec.TargetConfigMaps.GetMatches(ctx, r.Client, list)
 	if err != nil {
-		log.Error(err, "Failed to GetMatches for the TargetConfigMaps",
+		logr.Error(err, "Failed to GetMatches for the TargetConfigMaps",
 			"target", policy.Spec.TargetConfigMaps)
 
 		clientCond.Status = metav1.ConditionFalse
-		clientCond.Reason = "Error"
+		clientCond.Reason = "ErrorMatching"
 		clientCond.Message = err.Error()
 	} else {
 		clientCMs := make([]string, len(clientMatchedCMs))
@@ -235,7 +235,7 @@ type configMapResList struct {
 	corev1.ConfigMapList
 }
 
-// ensure configMapResList implements ResourceList
+// ensure configMapResList implements ResourceList.
 var _ nucleusv1beta1.ResourceList = (*configMapResList)(nil)
 
 func (l *configMapResList) Items() ([]client.Object, error) {
@@ -247,6 +247,7 @@ func (l *configMapResList) Items() ([]client.Object, error) {
 	return items, nil
 }
 
+//nolint:ireturn // the ResourceList interface requires this interface return
 func (l *configMapResList) ObjectList() client.ObjectList {
 	return &l.ConfigMapList
 }

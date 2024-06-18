@@ -8,7 +8,7 @@ import (
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
 )
 
-// FakePolicySpec defines the desired state of FakePolicy
+// FakePolicySpec defines the desired state of FakePolicy.
 type FakePolicySpec struct {
 	nucleusv1beta1.PolicyCoreSpec `json:",inline"`
 
@@ -28,7 +28,7 @@ type FakePolicySpec struct {
 
 //+kubebuilder:validation:Optional
 
-// FakePolicyStatus defines the observed state of FakePolicy
+// FakePolicyStatus defines the observed state of FakePolicy.
 type FakePolicyStatus struct {
 	nucleusv1beta1.PolicyCoreStatus `json:",inline"`
 
@@ -39,7 +39,7 @@ type FakePolicyStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// FakePolicy is the Schema for the fakepolicies API
+// FakePolicy is the Schema for the fakepolicies API.
 type FakePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -48,7 +48,7 @@ type FakePolicy struct {
 	Status FakePolicyStatus `json:"status,omitempty"`
 }
 
-// ensure FakePolicy implements PolicyLike
+// ensure FakePolicy implements PolicyLike.
 var _ nucleusv1beta1.PolicyLike = (*FakePolicy)(nil)
 
 func (f FakePolicy) ComplianceState() nucleusv1beta1.ComplianceState {
@@ -78,7 +78,7 @@ func (f FakePolicy) ParentNamespace() string {
 
 //+kubebuilder:object:root=true
 
-// FakePolicyList contains a list of FakePolicy
+// FakePolicyList contains a list of FakePolicy.
 type FakePolicyList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

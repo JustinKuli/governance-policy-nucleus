@@ -5,7 +5,7 @@ package utils
 import (
 	"embed"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -17,13 +17,13 @@ import (
 //go:embed testdata/*
 var testfiles embed.FS
 
-// Unmarshals the given YAML file in testdata/ into an unstructured.Unstructured
+// Unmarshals the given YAML file in testdata/ into an unstructured.Unstructured.
 func FromTestdata(name string) unstructured.Unstructured {
 	objYAML, err := testfiles.ReadFile("testdata/" + name)
-	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	gomega.ExpectWithOffset(1, err).ToNot(gomega.HaveOccurred())
 
 	m := make(map[string]interface{})
-	ExpectWithOffset(1, yaml.UnmarshalStrict(objYAML, &m)).To(Succeed())
+	gomega.ExpectWithOffset(1, yaml.UnmarshalStrict(objYAML, &m)).To(gomega.Succeed())
 
 	return unstructured.Unstructured{Object: m}
 }

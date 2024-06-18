@@ -17,7 +17,7 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: PolicyCore is the Schema for the policycores API
+        description: PolicyCore is the Schema for the policycores API.
         properties:
           apiVersion:
             description: |-

@@ -5,7 +5,6 @@ package fakepolicy
 import (
 	"context"
 	"flag"
-	"os"
 
 	"github.com/go-logr/zapr"
 	"github.com/stolostron/go-log-utils/zaputil"
@@ -23,19 +22,13 @@ import (
 	"open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/controllers"
 )
 
+//nolint:gochecknoglobals // used in inits
 var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 	utilruntime.Must(fakev1beta1.AddToScheme(scheme))
-}
-
-//nolint:unused
-func main() {
-	if err := Run(context.Background(), nil); err != nil {
-		os.Exit(1)
-	}
 }
 
 func Run(parentCtx context.Context, cfg *rest.Config) error {

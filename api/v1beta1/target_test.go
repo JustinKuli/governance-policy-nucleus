@@ -16,7 +16,7 @@ var sampleNames = []string{
 	"foo", "bar", "baz", "boo", "default", "kube-one", "kube-two", "kube-three",
 }
 
-// matches is only used to unit-test the behavior of `match`
+// matches is only used to unit-test the behavior of `match`.
 func (t *Target) matches(names []string) ([]string, error) {
 	// Using a map to ensure each entry in the result is unique.
 	set := make(map[string]struct{})
