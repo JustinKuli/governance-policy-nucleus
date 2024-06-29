@@ -131,7 +131,7 @@ type namespaceResList struct {
 	corev1.NamespaceList
 }
 
-// ensure namespaceResList implements ResourceList.
+// Run a compile-time check to ensure namespaceResList implements ResourceList.
 var _ ResourceList = (*namespaceResList)(nil)
 
 func (l *namespaceResList) Items() ([]client.Object, error) {
@@ -186,7 +186,9 @@ const (
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// PolicyCore is the Schema for the policycores API.
+// PolicyCore is the Schema for the policycores API. This is not a real API, but
+// is included so that an example CRD can be generated showing the validated
+// fields and types.
 type PolicyCore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -198,7 +200,41 @@ type PolicyCore struct {
 //+kubebuilder:object:generate=false
 
 // PolicyLike is an interface that policies should implement so that they can
-// benefit from some of the general tools in the nucleus.
+// benefit from some of the general tools in the nucleus. Here is a simple
+// example implementation, which utilizes the core types of the nucleus:
+//
+//	import  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+//	import nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
+//
+//	type FakePolicy struct {
+//		metav1.TypeMeta   `json:",inline"`
+//		metav1.ObjectMeta `json:"metadata,omitempty"`
+//		Spec   nucleusv1beta1.PolicyCoreSpec   `json:"spec,omitempty"`
+//		Status nucleusv1beta1.PolicyCoreStatus `json:"status,omitempty"`
+//	}
+//
+//	func (f FakePolicy) ComplianceState() nucleusv1beta1.ComplianceState {
+//		return f.Status.ComplianceState
+//	}
+//
+//	func (f FakePolicy) ComplianceMessage() string {
+//		idx, compCond := f.Status.GetCondition("Compliant")
+//		if idx == -1 {
+//			return ""
+//		}
+//		return compCond.Message
+//	}
+//
+//	func (f FakePolicy) Parent() metav1.OwnerReference {
+//		if len(f.OwnerReferences) == 0 {
+//			return metav1.OwnerReference{}
+//		}
+//		return f.OwnerReferences[0]
+//	}
+//
+//	func (f FakePolicy) ParentNamespace() string {
+//		return f.Namespace
+//	}
 type PolicyLike interface {
 	client.Object
 

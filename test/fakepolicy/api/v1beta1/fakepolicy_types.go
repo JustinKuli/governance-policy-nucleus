@@ -48,7 +48,7 @@ type FakePolicy struct {
 	Status FakePolicyStatus `json:"status,omitempty"`
 }
 
-// ensure FakePolicy implements PolicyLike.
+// Run a compile-time check to ensure FakePolicy implements PolicyLike.
 var _ nucleusv1beta1.PolicyLike = (*FakePolicy)(nil)
 
 func (f FakePolicy) ComplianceState() nucleusv1beta1.ComplianceState {

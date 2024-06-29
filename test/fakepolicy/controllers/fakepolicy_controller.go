@@ -235,7 +235,7 @@ type configMapResList struct {
 	corev1.ConfigMapList
 }
 
-// ensure configMapResList implements ResourceList.
+// Run a compile-time check to ensure configMapResList implements ResourceList.
 var _ nucleusv1beta1.ResourceList = (*configMapResList)(nil)
 
 func (l *configMapResList) Items() ([]client.Object, error) {

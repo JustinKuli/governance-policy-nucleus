@@ -13,16 +13,16 @@ import (
 
 //+kubebuilder:object:generate=false
 
-// ReflectiveResourceList implements ResourceList for the wrapped client.ObjectList, by using
-// reflection. The wrapped list must have an Items field, with a slice of items which satisfy the
-// client.Object interface - most types which satisfy client.ObjectList seem to follow this
-// convention. Using this type is not recommended: implementing ResourceList yourself will generally
+// ReflectiveResourceList implements v1beta1.ResourceList for the wrapped client.ObjectList, by
+// using reflection. The wrapped list must have an Items field, with a slice of items which satisfy
+// the client.Object interface - most types which satisfy client.ObjectList seem to follow this
+// convention. Using this type is not recommended: implementing ResourceList by hand will likely
 // lead to better performance.
 type ReflectiveResourceList struct {
 	ClientList client.ObjectList
 }
 
-// ensure ReflectiveResourceList implements ResourceList.
+// Run a compile-time check to ensure ReflectiveResourceList implements ResourceList.
 var _ v1beta1.ResourceList = (*ReflectiveResourceList)(nil)
 
 // Items returns the list of items in the list. Since this implementation uses reflection, it may
