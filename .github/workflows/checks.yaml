@@ -7,8 +7,8 @@ defaults:
     shell: bash
 
 jobs:
-  makechecks:
-    name: Make Checks
+  cleanliness:
+    name: Run Cleanliness Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
 
   # A separate job so that it can annotate the code
   golangci:
-    name: golangci-lint
+    name: Run golangci-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
           # Automatically uses ./.golangci.yml for configuration
 
   tests:
-    name: Tests
+    name: Run Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
