@@ -25,6 +25,7 @@ jobs:
 
       - run: |
           make manifests
+          ( cd test/fakepolicy && make manifests )
           make generate
           make fmt
           make vet
