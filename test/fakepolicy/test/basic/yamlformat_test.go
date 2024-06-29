@@ -17,9 +17,11 @@ import (
 )
 
 var _ = Describe("FakePolicy resource format verification", func() {
-	sampleYAML := FromTestdata("fakepolicy-sample.yaml")
-	extraFieldYAML := FromTestdata("extra-field.yaml")
+	sampleYAML := FromTestdata("policy_v1beta1_fakepolicy.yaml")
 	emptyMatchExpressionsYAML := FromTestdata("empty-match-expressions.yaml")
+	policycoreSample := FromTestdata("policy_v1beta1_policycore.yaml")
+
+	extraFieldYAML := FromTestdata("extra-field.yaml")
 
 	sample := SampleFakePolicy()
 
@@ -62,6 +64,10 @@ var _ = Describe("FakePolicy resource format verification", func() {
 			},
 		}
 
+		if nn.Name == "policycore-sample" {
+			gotObj.Object["kind"] = "PolicyCore"
+		}
+
 		Expect(k8sClient.Get(ctx, nn, gotObj)).Should(Succeed())
 
 		// Just compare specs; metadata will be different between runs
@@ -75,28 +81,34 @@ var _ = Describe("FakePolicy resource format verification", func() {
 
 		Expect(string(wantSpec)).To(Equal(string(gotSpec)))
 	},
-		// The golang instances defined above should match the specified files.
-		Entry("The sample YAML policy should be correct",
+		// These instances should be "stable" - getting them from the cluster after applying them
+		// should return the same information (modulo some metadata, of course)
+		Entry("The sample fakepolicy YAML should be stable",
 			sampleYAML.DeepCopy(),
-			"fakepolicy-sample.yaml"),
+			"policy_v1beta1_fakepolicy.yaml"),
 		Entry("The empty matchExpressions should be preserved",
 			emptyMatchExpressionsYAML.DeepCopy(),
 			"empty-match-expressions.yaml"),
+		Entry("The sample policycore policy should be stable",
+			policycoreSample.DeepCopy(),
+			"policy_v1beta1_policycore.yaml"),
+
+		// The golang instances defined above should match the specified files.
 		Entry("An extra field in the spec should be removed",
 			extraFieldYAML.DeepCopy(),
-			"fakepolicy-sample.yaml"),
+			"policy_v1beta1_fakepolicy.yaml"),
 		Entry("The sample typed policy should be correct",
 			sample.DeepCopy(),
-			"fakepolicy-sample.yaml"),
+			"policy_v1beta1_fakepolicy.yaml"),
 		Entry("An empty Includes list should be removed",
 			emptyInclude.DeepCopy(),
 			"no-include.yaml"),
 		Entry("An empty LabelSelector should have no effect",
 			emptyLabelSelector.DeepCopy(),
-			"fakepolicy-sample.yaml"),
+			"policy_v1beta1_fakepolicy.yaml"),
 		Entry("A nil LabelSelector should have no effect",
 			nilLabelSelector.DeepCopy(),
-			"fakepolicy-sample.yaml"),
+			"policy_v1beta1_fakepolicy.yaml"),
 		Entry("The emptyMatchExpressions in the typed object should match the YAML",
 			emptyMatchExpressions.DeepCopy(),
 			"empty-match-expressions.yaml"),

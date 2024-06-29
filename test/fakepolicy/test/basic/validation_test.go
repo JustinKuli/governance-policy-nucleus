@@ -14,7 +14,7 @@ import (
 var _ = Describe("FakePolicy CRD Validation", func() {
 	DescribeTable("Validating spec inputs",
 		func(ctx SpecContext, severity, remediationAction string, include, exclude []string, isValid bool) {
-			policy := FromTestdata("fakepolicy-sample.yaml")
+			policy := FromTestdata("policy_v1beta1_fakepolicy.yaml")
 
 			Expect(unstructured.SetNestedField(policy.Object,
 				severity, "spec", "severity")).To(Succeed())

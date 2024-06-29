@@ -80,6 +80,7 @@ manifests: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate WebhookConfiguration, Clus
 	  output:crd:artifacts:config=test/fakepolicy/config/crd/bases \
 	  output:rbac:artifacts:config=test/fakepolicy/config/rbac
 	$(KUSTOMIZE) build ./test/fakepolicy/config/default > ./test/fakepolicy/config/deploy.yaml
+	cp ./config/samples/* ./test/fakepolicy/test/utils/testdata/
 
 .PHONY: generate
 generate: $(CONTROLLER_GEN) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
