@@ -14,4 +14,3 @@ namePrefix: governance-policy-nucleus-
 
 bases:
 - ../crd
-- ../rbac
