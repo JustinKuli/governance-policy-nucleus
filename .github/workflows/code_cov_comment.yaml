@@ -6,6 +6,7 @@ on:
 
 jobs:
   comment:
+    name: Add PR Code Coverage Report
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v7
