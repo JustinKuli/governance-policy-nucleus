@@ -17,16 +17,16 @@ export GOBIN ?= $(GOBIN_DEFAULT)
 export PATH=$(LOCAL_BIN):$(GOBIN):$(shell echo $$PATH)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
-# This is a requirement for 'setup-envtest.sh' in the test target.
+# This might be a requirement for envtest, used by the test suites.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 # go-install will 'go install' any package $1 to LOCAL_BIN
-# Note: this replaces `go-get-tool`.
+# Note: this replaces the `go-get-tool` scaffolded by kubebuilder.
 go-install = @set -e ; mkdir -p $(LOCAL_BIN) ; GOBIN=$(LOCAL_BIN) go install $(1)
 
-# Define local utilities before other targets so they work correctly
+# Local utilities must be defined before other targets so they work correctly.
 # Note: this pattern of variables, paths, and target names allows users to
 #  override the version used, and helps Make by not using PHONY targets.
 # To 'refresh' versions, remove the local bin directory.
@@ -100,7 +100,8 @@ vet: $(GOSEC)
 
 # Note: this target is not used by Github Actions. Instead, each linter is run 
 # separately to automatically decorate the code with the linting errors.
-# Note: this target will fail if yamllint is not installed.
+# Note: this target will fail if yamllint is not installed. Installing yamllint
+# is outside the scope of this Makefile.
 .PHONY: lint
 lint: $(GOLANGCI)
 	$(GOLANGCI) run
@@ -108,17 +109,20 @@ lint: $(GOLANGCI)
 
 ENVTEST_K8S_VERSION ?= 1.29
 .PHONY: test
-test: manifests generate $(GINKGO) $(ENVTEST) ## Run all the tests
+test: manifests generate $(GINKGO) $(ENVTEST) ## Run all the tests, except for fuzz tests
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \
 	  --coverpkg=./... --covermode=count --coverprofile=raw-cover.out ./...
 
+.PHONY: test-unit
 test-unit: ## Run only the unit tests
 	go test --coverpkg=./... --covermode=count --coverprofile=cover-unit.out ./api/... ./pkg/...
 
+.PHONY: test-basicsuite
 test-basicsuite: manifests generate $(GINKGO) $(ENVTEST) ## Run just the basic suite of tests
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \
 	  --coverpkg=./... --covermode=count --coverprofile=cover-basic.out ./test/fakepolicy/test/basic
 
+.PHONY: test-compsuite
 test-compsuite: manifests generate $(GINKGO) $(ENVTEST) ## Run just the compliance event tests
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" $(GINKGO) \
 	  --coverpkg=./... --covermode=count --coverprofile=cover-comp.out ./test/fakepolicy/test/compliance
