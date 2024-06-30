@@ -6,6 +6,11 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: write
+  id-token: write
+  pages: write
+
 jobs:
   cleanliness:
     name: Run Cleanliness Checks
@@ -97,7 +102,7 @@ jobs:
           sleep 15 # Let it initialize
 
           echo "Downloading the generated doc site"
-          wget -r -q -np -N -E -p -k 'http://localhost:8080/open-cluster-management.io/governance-policy-nucleus@v0.0.0'
+          wget -r -q -np -N -E -p -k 'http://localhost:8080/open-cluster-management.io/governance-policy-nucleus@v0.0.0' || true
           kill -9 $DOC_PID
 
           echo "Bringing all the files into a gh-pages directory"
@@ -105,7 +110,7 @@ jobs:
           
           # Adjust some localhost links
           find ./gh-pages -type f -name "*.html" -print0 | \
-            xargs -0 sed -i 's|localhost:8080/files/workspaces|broken-source-link|g'
+            xargs -0 sed -i 's|localhost:8080/files|broken-source-link|g'
           find ./gh-pages -type f -name "*.html" -print0 | \
             xargs -0 sed -i 's|http://localhost:8080|https://pkg.go.dev|g'
           
