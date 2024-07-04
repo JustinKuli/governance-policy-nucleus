@@ -15,15 +15,15 @@ type FakePolicySpec struct {
 	// TargetConfigMaps defines the ConfigMaps which should be examined by this policy
 	TargetConfigMaps nucleusv1beta1.Target `json:"targetConfigMaps,omitempty"`
 
-	// TargetUsingReflection defines whether to use reflection to find the ConfigMaps
-	TargetUsingReflection bool `json:"targetUsingReflection,omitempty"`
-
 	// DesiredConfigMapName - if this name is not found, the policy will report a violation
 	DesiredConfigMapName string `json:"desiredConfigMapName,omitempty"`
 
 	// EventAnnotation - if provided, this value will be annotated on the compliance
 	// events, under the "policy.open-cluster-management.io/test" key
 	EventAnnotation string `json:"eventAnnotation,omitempty"`
+
+	// TargetUsingReflection defines whether to use reflection to find the ConfigMaps
+	TargetUsingReflection bool `json:"targetUsingReflection,omitempty"`
 }
 
 //+kubebuilder:validation:Optional
