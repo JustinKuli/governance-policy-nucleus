@@ -4,41 +4,116 @@ package testutils
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"os/exec"
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	ErrNoKubeconfg = errors.New("no known kubeconfig: can not run kubectl")
+	ErrKubectl     = errors.New("kubectl exited with error")
 )
 
 type Toolkit struct {
 	client.Client
+	Ctx                 context.Context //nolint:containedctx // this is for convenience
+	RestConfig          *rest.Config
+	KubeconfigPath      string
 	EventuallyPoll      string
 	EventuallyTimeout   string
 	ConsistentlyPoll    string
 	ConsistentlyTimeout string
-	BackgroundCtx       context.Context //nolint:containedctx // this is for convenience
 }
 
-// NewToolkit returns a toolkit using the given Client, with some basic defaults.
-// This is the preferred way to get a Toolkit instance, to avoid unset fields.
+// NewToolkitFromRest returns a toolkit using the given REST config. This is
+// the preferred way to get a Toolkit instance, to avoid unset fields.
 //
-//nolint:gocritic // package client is shadowed, but any other name would be confusing
-func NewToolkit(client client.Client) Toolkit {
+// The toolkit will use a new client built from the REST config and the global
+// Scheme. The path to a kubeconfig can also be provided, which will be used
+// for `.Kubectl` calls - if passed an empty string, a temporary kubeconfig
+// will be created based on the REST config.
+func NewToolkitFromRest(tkCfg *rest.Config, kubeconfigPath string) (Toolkit, error) {
+	k8sClient, err := client.New(tkCfg, client.Options{Scheme: scheme.Scheme})
+	if err != nil {
+		return Toolkit{}, err
+	}
+
+	// Create a temporary kubeconfig if one is not provided.
+	if kubeconfigPath == "" {
+		f, err := os.CreateTemp("", "toolkit-kubeconfig-*")
+		if err != nil {
+			return Toolkit{}, err
+		}
+
+		contents, err := createKubeconfigFile(tkCfg)
+		if err != nil {
+			return Toolkit{}, err
+		}
+
+		_, err = f.Write(contents)
+		if err != nil {
+			return Toolkit{}, err
+		}
+
+		kubeconfigPath = f.Name()
+	}
+
 	return Toolkit{
-		Client:              client,
+		Client:              k8sClient,
+		Ctx:                 context.Background(),
+		RestConfig:          tkCfg,
+		KubeconfigPath:      kubeconfigPath,
 		EventuallyPoll:      "100ms",
 		EventuallyTimeout:   "1s",
 		ConsistentlyPoll:    "100ms",
 		ConsistentlyTimeout: "1s",
-		BackgroundCtx:       context.Background(),
-	}
+	}, nil
+}
+
+func (tk Toolkit) WithEPoll(eventuallyPoll string) Toolkit {
+	tk.EventuallyPoll = eventuallyPoll
+
+	return tk
+}
+
+func (tk Toolkit) WithETimeout(eventuallyTimeout string) Toolkit {
+	tk.EventuallyTimeout = eventuallyTimeout
+
+	return tk
+}
+
+func (tk Toolkit) WithCPoll(consistentlyPoll string) Toolkit {
+	tk.ConsistentlyPoll = consistentlyPoll
+
+	return tk
+}
+
+func (tk Toolkit) WithCTimeout(consistentlyTimeout string) Toolkit {
+	tk.ConsistentlyTimeout = consistentlyTimeout
+
+	return tk
+}
+
+func (tk Toolkit) WithCtx(ctx context.Context) Toolkit {
+	tk.Ctx = ctx
+
+	return tk
 }
 
 // CleanlyCreate creates the given object, and registers a callback to delete the object which
@@ -52,8 +127,8 @@ func (tk Toolkit) CleanlyCreate(ctx context.Context, obj client.Object, opts ...
 			ginkgo.GinkgoWriter.Printf("Deleting %v %v/%v\n",
 				obj.GetObjectKind().GroupVersionKind().Kind, obj.GetNamespace(), obj.GetName())
 
-			if err := tk.Delete(tk.BackgroundCtx, obj); err != nil {
-				if !errors.IsNotFound(err) {
+			if err := tk.Delete(tk.Ctx, obj); err != nil {
+				if !k8sErrors.IsNotFound(err) {
 					// Use Fail in order to provide a custom message with useful information
 					ginkgo.Fail(fmt.Sprintf("Expected success or 'NotFound' error, got %v", err), 1)
 				}
@@ -188,18 +263,60 @@ func (tk Toolkit) EC(
 	).Should(matcher, cDesc...)
 }
 
-// RegisterDebugMessage returns a pointer to a string which will be logged at the
-// end of the test only if the test fails. This is particularly useful for logging
-// information only once in an Eventually or Consistently function.
-// Note: using a custom description message may be a better practice overall.
-func RegisterDebugMessage() *string {
-	var debugMsg string
+func (tk *Toolkit) Kubectl(args ...string) (string, error) {
+	addKubeconfig := true
 
-	ginkgo.DeferCleanup(func() {
-		if ginkgo.CurrentSpecReport().Failed() {
-			ginkgo.GinkgoWriter.Println(debugMsg)
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "--kubeconfig") {
+			addKubeconfig = false
+
+			break
 		}
-	})
+	}
 
-	return &debugMsg
+	if addKubeconfig {
+		if tk.KubeconfigPath == "" {
+			return "", ErrNoKubeconfg
+		}
+
+		args = append([]string{"--kubeconfig=" + tk.KubeconfigPath}, args...)
+	}
+
+	output, err := exec.Command("kubectl", args...).Output()
+
+	var exitError *exec.ExitError
+
+	if errors.As(err, &exitError) {
+		if exitError.Stderr == nil {
+			return string(output), err
+		}
+
+		return string(output), fmt.Errorf("%w: %s", ErrKubectl, exitError.Stderr)
+	}
+
+	return string(output), err
+}
+
+func createKubeconfigFile(cfg *rest.Config) ([]byte, error) {
+	identifier := "toolkit"
+
+	kubeconfig := api.NewConfig()
+
+	cluster := api.NewCluster()
+	cluster.Server = cfg.Host
+	cluster.CertificateAuthorityData = cfg.CAData
+	kubeconfig.Clusters[identifier] = cluster
+
+	authInfo := api.NewAuthInfo()
+	authInfo.ClientCertificateData = cfg.CertData
+	authInfo.ClientKeyData = cfg.KeyData
+	kubeconfig.AuthInfos[identifier] = authInfo
+
+	apiContext := api.NewContext()
+	apiContext.Cluster = identifier
+	apiContext.AuthInfo = identifier
+	kubeconfig.Contexts[identifier] = apiContext
+	kubeconfig.CurrentContext = identifier
+
+	return clientcmd.Write(*kubeconfig)
 }

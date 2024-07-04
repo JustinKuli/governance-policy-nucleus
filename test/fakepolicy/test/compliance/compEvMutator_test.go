@@ -85,7 +85,7 @@ var _ = Describe("Compliance Events with a Mutator", Ordered, func() {
 			}
 
 			return names
-		}, HaveLen(1))
+		}, HaveLen(1), policy.GetName) // this policy.GetName is for additional EC coverage
 	})
 
 	It("Should emit with the annotation, when eventAnnotation is set", func(ctx SpecContext) {
@@ -95,12 +95,10 @@ var _ = Describe("Compliance Events with a Mutator", Ordered, func() {
 			Labels:    map[string]string{"sample": ""},
 		}})).To(Succeed())
 
-		// Refresh the test's copy of the policy
-		Expect(tk.Get(ctx, testutils.ObjNN(policy), policy)).To(Succeed())
-
 		By("Setting the eventAnnotation field on the policy")
-		policy.Spec.EventAnnotation = "borogoves"
-		Expect(tk.Update(ctx, policy)).To(Succeed())
+		Expect(tk.Kubectl("patch", "fakepolicy", "-n="+testNS, policy.Name, "--type=json",
+			`-p=[{"op": "replace", "path": "/spec/eventAnnotation", "value": "borogoves"}]`,
+		)).Should(ContainSubstring("patched"))
 
 		tk.EC(func(g Gomega) []string {
 			evs, err := tk.GetComplianceEvents(ctx, testNS, parent.UID, policy.Name)
@@ -110,7 +108,7 @@ var _ = Describe("Compliance Events with a Mutator", Ordered, func() {
 
 			names := make([]string, 0, len(evs))
 			for _, ev := range evs {
-				if ev.Annotations[annoKey] != policy.Spec.EventAnnotation {
+				if ev.Annotations[annoKey] != "borogoves" {
 					continue
 				}
 
@@ -118,6 +116,6 @@ var _ = Describe("Compliance Events with a Mutator", Ordered, func() {
 			}
 
 			return names
-		}, HaveLen(1), "Events counted have annotation '%v'", policy.Spec.EventAnnotation)
+		}, HaveLen(1), "Events counted have annotation '%v'", "borogoves")
 	})
 })

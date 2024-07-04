@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,4 +49,20 @@ func EventFilter(events []corev1.Event, evType, msg string, since time.Time) []c
 	}
 
 	return ans
+}
+
+// RegisterDebugMessage returns a pointer to a string which will be logged at the
+// end of the test only if the test fails. This is particularly useful for logging
+// information only once in an Eventually or Consistently function.
+// Note: using a custom description message may be a better practice overall.
+func RegisterDebugMessage() *string {
+	var debugMsg string
+
+	ginkgo.DeferCleanup(func() {
+		if ginkgo.CurrentSpecReport().Failed() {
+			ginkgo.GinkgoWriter.Println(debugMsg)
+		}
+	})
+
+	return &debugMsg
 }

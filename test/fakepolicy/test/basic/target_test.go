@@ -53,7 +53,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 		// constructing the default / allConfigMaps lists is complicated because of how ginkgo
 		// runs the table tests... this seems better than other workarounds.
 		cmList := corev1.ConfigMapList{}
-		Expect(k8sClient.List(ctx, &cmList)).To(Succeed())
+		Expect(tk.List(ctx, &cmList)).To(Succeed())
 
 		foundCM := make([]string, len(cmList.Items))
 		for i, cm := range cmList.Items {
@@ -138,7 +138,7 @@ var _ = Describe("FakePolicy TargetConfigMaps", func() {
 	checkFunc := func(policy fakev1beta1.FakePolicy, desiredMatches []string, selErr string) func(g Gomega) {
 		return func(g Gomega) {
 			foundPolicy := fakev1beta1.FakePolicy{}
-			g.Expect(k8sClient.Get(ctx, testutils.ObjNN(&policy), &foundPolicy)).To(Succeed())
+			g.Expect(tk.Get(ctx, testutils.ObjNN(&policy), &foundPolicy)).To(Succeed())
 			g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
 
 			slices.Sort(desiredMatches)
