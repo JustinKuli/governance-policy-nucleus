@@ -36,7 +36,7 @@ var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
 		// constructing the default / allNamespaces lists is complicated because of how ginkgo
 		// runs the table tests... this seems better than other workarounds.
 		nsList := corev1.NamespaceList{}
-		Expect(k8sClient.List(ctx, &nsList)).To(Succeed())
+		Expect(tk.List(ctx, &nsList)).To(Succeed())
 
 		foundNS := make([]string, len(nsList.Items))
 		for i, ns := range nsList.Items {
@@ -57,7 +57,7 @@ var _ = Describe("FakePolicy NamespaceSelection", Ordered, func() {
 
 			Eventually(func(g Gomega) {
 				foundPolicy := fakev1beta1.FakePolicy{}
-				g.Expect(k8sClient.Get(ctx, testutils.ObjNN(&policy), &foundPolicy)).To(Succeed())
+				g.Expect(tk.Get(ctx, testutils.ObjNN(&policy), &foundPolicy)).To(Succeed())
 				g.Expect(foundPolicy.Status.SelectionComplete).To(BeTrue())
 
 				idx, cond := foundPolicy.Status.GetCondition("NamespaceSelection")

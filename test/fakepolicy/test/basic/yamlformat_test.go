@@ -8,11 +8,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nucleusv1beta1 "open-cluster-management.io/governance-policy-nucleus/api/v1beta1"
-	"open-cluster-management.io/governance-policy-nucleus/pkg/testutils"
 	. "open-cluster-management.io/governance-policy-nucleus/test/fakepolicy/test/utils"
 )
 
@@ -52,34 +50,24 @@ var _ = Describe("FakePolicy resource format verification", func() {
 		Operator: metav1.LabelSelectorOpExists,
 	}}
 
-	// input is a clientObject so that either an Unstructured or the "real" type can be provided.
+	// input is a client.Object so that either an Unstructured or the "real" type can be provided.
 	DescribeTable("Verifying spec stability", func(ctx SpecContext, input client.Object, wantFile string) {
 		Expect(tk.CleanlyCreate(ctx, input)).To(Succeed())
 
-		nn := testutils.ObjNN(input)
-		gotObj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": "policy.open-cluster-management.io/v1beta1",
-				"kind":       "FakePolicy",
-			},
+		kind := "fakepolicy"
+		if input.GetName() == "policycore-sample" {
+			kind = "policycore"
 		}
 
-		if nn.Name == "policycore-sample" {
-			gotObj.Object["kind"] = "PolicyCore"
-		}
-
-		Expect(k8sClient.Get(ctx, nn, gotObj)).Should(Succeed())
-
-		// Just compare specs; metadata will be different between runs
-
-		gotSpec, err := json.Marshal(gotObj.Object["spec"])
+		gotSpec, err := tk.Kubectl("get", kind, "-n="+input.GetNamespace(), input.GetName(),
+			"-o=jsonpath={.spec}")
 		Expect(err).ToNot(HaveOccurred())
 
 		wantUnstruct := FromTestdata(wantFile)
 		wantSpec, err := json.Marshal(wantUnstruct.Object["spec"])
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(string(wantSpec)).To(Equal(string(gotSpec)))
+		Expect(string(wantSpec)).To(Equal(gotSpec))
 	},
 		// These instances should be "stable" - getting them from the cluster after applying them
 		// should return the same information (modulo some metadata, of course)
