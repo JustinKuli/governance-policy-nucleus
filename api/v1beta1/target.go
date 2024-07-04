@@ -16,15 +16,15 @@ import (
 type Target struct {
 	*metav1.LabelSelector `json:",inline"`
 
+	// Namespace is the namespace to restrict the Target to. Can be empty for non-namespaced
+	// objects, or to look in all namespaces.
+	Namespace string `json:"namespace,omitempty"`
+
 	// Include is a list of filepath expressions to include objects by name.
 	Include []NonEmptyString `json:"include,omitempty"`
 
 	// Exclude is a list of filepath expressions to include objects by name.
 	Exclude []NonEmptyString `json:"exclude,omitempty"`
-
-	// Namespace is the namespace to restrict the Target to. Can be empty for non-namespaced
-	// objects, or to look in all namespaces.
-	Namespace string `json:"namespace,omitempty"`
 }
 
 //+kubebuilder:object:generate=false
